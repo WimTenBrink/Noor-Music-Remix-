@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Noor Music - AI Songwriter</title>
+    <style>
+      :root {
+        --bg-lavender: #0a0a0f;
+        --bg-surface: #151520;
+        --bg-border: #2a2a3a;
+        --text-lavender: #e0e0f0;
+        --accent-lavender: #a080ff;
+      }
+
+      body {
+        background-color: var(--bg-lavender);
+        color: var(--text-lavender);
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        font-size: 18px; /* Reasonably large font */
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      /* Markdown Styles */
+      .markdown-body {
+        line-height: 1.6;
+        font-size: 1.1rem;
+      }
+      .markdown-body h1 { font-size: 2.5rem; color: var(--accent-lavender); border-bottom: 1px solid var(--bg-border); padding-bottom: 0.5rem; margin-top: 2rem; }
+      .markdown-body h2 { font-size: 2rem; color: var(--accent-lavender); border-bottom: 1px solid var(--bg-border); padding-bottom: 0.3rem; margin-top: 1.5rem; }
+      .markdown-body h3 { font-size: 1.5rem; color: var(--accent-lavender); margin-top: 1.2rem; }
+      .markdown-body p { margin-bottom: 1rem; }
+      .markdown-body ul, .markdown-body ol { margin-bottom: 1rem; padding-left: 2rem; }
+      .markdown-body li { margin-bottom: 0.5rem; }
+      .markdown-body table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+      .markdown-body th, .markdown-body td { border: 1px solid var(--bg-border); padding: 0.75rem; text-align: left; }
+      .markdown-body th { background-color: var(--bg-surface); font-weight: bold; }
+      .markdown-body hr { border: 0; border-top: 1px solid var(--bg-border); margin: 2rem 0; }
+      .markdown-body blockquote { border-left: 4px solid var(--accent-lavender); padding-left: 1rem; color: rgba(224, 224, 240, 0.7); font-style: italic; margin-bottom: 1rem; }
+      .markdown-body code { background-color: var(--bg-surface); padding: 0.2rem 0.4rem; rounded: 4px; font-family: monospace; font-size: 0.9em; }
+      .markdown-body pre { background-color: var(--bg-surface); padding: 1rem; border-radius: 8px; overflow-x: auto; margin-bottom: 1rem; border: 1px solid var(--bg-border); }
+      .markdown-body pre code { background-color: transparent; padding: 0; }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar-track { background: var(--bg-lavender); }
+      ::-webkit-scrollbar-thumb { background: var(--bg-border); border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--accent-lavender); }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

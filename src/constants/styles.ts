@@ -48,7 +48,8 @@ export const STYLES = [
       { name: "Trap", description: "A subgenre of hip hop that originated in the Southern United States during the early 2000s." },
       { name: "Contemporary R&B", description: "A music genre that combines rhythm and blues with elements of pop, soul, funk, hip hop and electronic music." },
       { name: "Neo Soul", description: "A genre of popular music that emerged from soul and contemporary R&B." },
-      { name: "Cloud Rap", description: "A subgenre of hip hop music characterized by its ethereal, dreamlike production." }
+      { name: "Cloud Rap", description: "A subgenre of hip hop music characterized by its ethereal, dreamlike production." },
+      { name: "Braggadocio", description: "A boastful, swaggering hip-hop substyle emphasizing witty punchlines, extreme self-confidence, and dominant delivery." }
     ]
   },
   {

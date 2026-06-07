@@ -66,15 +66,7 @@ export interface Song {
   story?: string;
   storyPrompts?: StoryPrompts;
   interview?: string;
-  settings?: {
-    instructions: string;
-    musicInspiration: string;
-    dialectId: string;
-    rating: string;
-    coreGrooves: string[];
-    emotion: string;
-    selfReflect?: boolean;
-  };
+  settings?: any;
 }
 
 export interface Instrument {

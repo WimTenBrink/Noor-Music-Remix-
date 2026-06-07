@@ -90,7 +90,12 @@ export const GENERATE_LYRICS_PROMPT = (
   selfReflect: boolean = true,
   innuendoLevelText?: string,
   epicLevelText?: string,
-  rhymeStyleText?: string
+  rhymeStyleText?: string,
+  sillyLevelText?: string,
+  musicalKey?: string,
+  bpm?: number,
+  timeSignature?: string,
+  sapphicLevelText?: string
 ) => {
   const forbiddenTextList: string[] = Object.entries(forbiddenTopics)
     .filter(([_, value]) => value)
@@ -117,6 +122,11 @@ export const GENERATE_LYRICS_PROMPT = (
 Generate a new song based on the following user instructions:
 "${instructions}"
 
+**CRITICAL MUSICAL BLUEPRINT SETTINGS (MUST FOLLOW SYSTEMATICALLY):**
+${musicalKey ? `* **Main Musical Key:** ${musicalKey} (CRITICAL: You must use ${musicalKey} as the foundation for the song arrangement. Annotate sections with [Key: ${musicalKey}] tags.)` : ''}
+${bpm ? `* **Main Tempo Speed (BPM):** ${bpm} Beats Per Minute (CRITICAL: You must write structural cues or tags like [BPM: ${bpm}] and align phrasing speed with a ${bpm} count.)` : ''}
+${timeSignature ? `* **Main Time Signature Rhythm:** ${timeSignature} signature (CRITICAL: Structure the meter, lyric lines, accentuation, and rhythms to naturally flow in ${timeSignature} time signature. E.g., make sure lyrics have appropriate syllabic stresses if in 3/4, 7/8, etc.)` : ''}
+
 ${emotion ? `Explore the following main emotion/feeling throughout the song: "${emotion}"\n(You MUST reflect this specific emotional shade in the lyrics, performance delivery speed/articulation guidelines, and general musical structure.)` : ''}
 
 Content Rating: ${rating}
@@ -130,6 +140,9 @@ ${epicLevelText ? `Epic Drama Level & Arrangement: "${epicLevelText}"
 
 ${rhymeStyleText ? `Rhyme Scheme / Structure constraint: "${rhymeStyleText}"
 (You MUST follow this rhyming style strictly. If the style requests "No Rhyme" or specific poetic syllable structures like Haiku/Tanka or rhythmic vocal chants like Haka, do NOT force traditional pop rhyming. Implement the requested rhyme scheme or lack thereof thoroughly inside the verses and chorus sections.)` : ''}
+
+${sillyLevelText ? `Silliness / Whimsicality Level: "${sillyLevelText}"
+(You MUST adjust the lyrical themes, word selection, logical coherence, and general seriousness of the song based on this parameter, ranging from deeply serious and profound, to light-hearted humor, to extremely absurd, wacky, Dadaist ideas and utter nonsensical wordplay.)` : ''}
 
 Target Language / Dialect: ${languageInfo}
 (You MUST compose the song lyrics, vocabulary, phrasing, and style naturally using the specified language and dialect.)
@@ -152,15 +165,18 @@ ${outroConfig?.enabled ? `**INSTRUMENTAL OUTRO SPECIFICATION (SUNO-OPTIMIZED):**
 - **Instruments to feature in outro:** ${outroConfig.instruments.length > 0 ? outroConfig.instruments.join(', ') : 'selected theme instruments'}.
 - **CRITICAL FORMATTING:** Do NOT write any timing labels in the brackets! Write using appropriate SUNO acoustic ending tags as defined in your system instructions (e.g., \`[Outro]\`, \`[Decrescendo]\`, \`[Fade Out]\`). Keep it completely vocal-free.` : ''}
 
-Suggested Musical Elements & Parameter Settings (These are suggestions/guidelines; you have full creative authority to override, change, add, or skip any of these if it dramatically improves the song quality, lyrical flow, or vocal style of the piece):
-- Suggested Styles: ${styles.length > 0 ? styles.join(", ") : "None selected. Please choose appropriate musical styles."}
-- Suggested Instruments: ${instruments.length > 0 ? instruments.join(", ") : "None selected. Please choose appropriate instruments."}
-- Suggested Core Grooves / Beats styling: ${coreGrooves && coreGrooves.length > 0 ? coreGrooves.join(", ") : "None specified."}
+**MANDATORY MUSICAL STYLE, GENRE, INSTRUMENTS, AND GROOVE SELECTION:**
+- You MUST strictly follow the user's enabled and selected options. These are NOT suggestions; they are mandatory guidelines for your generation.
+- **Enabled Styles:** ${styles.length > 0 ? styles.join(", ") : "NO EXPLICIT STYLES SELECTED (Use standard barefoot acoustic singer-songwriter folk styles. NO default pop, NO generic electropop, unless requested.)"}
+- **Enabled Instruments:** ${instruments.length > 0 ? instruments.join(", ") : "NO EXPLICIT INSTRUMENTS SELECTED (Use barefoot acoustic and percussion only. DO NOT assume heavy guitars, synths, or loud drums unless listed.)"}
+- **Enabled Core Grooves / Beats Styling:** ${coreGrooves && coreGrooves.length > 0 ? coreGrooves.join(", ") : "NO SPECIFIC GROOVES SELECTED"}
+
+*CRITICAL REQUIREMENT:* You are STRICTLY FORBIDDEN from adding, guessing, or substituting default pop terms (e.g. "minimalist pop", "sparse arrangement", "808 sub boom", "synth pluck", "clean vocals", "serious", "romantic", "battle hymn") to the style or arrangement UNLESS they are explicitly listed in the enabled fields above. If a style or instrument is not selected/enabled, it MUST NOT be used.
 
 ${forbiddenText ? `**CRITICAL TOPIC CONSTRAINTS:**\n${forbiddenText}\n` : ''}
 
 Please ensure the lyrics reflect the band's persona (Noor) and their specific musical skills as defined in your system instructions.
-- **SAPPHIC & LESBIAN FOCUS:** All lyrics and storytelling must be strictly focused on female characters with sapphic/lesbian preferences. Avoid any reference to men, male names, male pronouns, or the male anatomy under any circumstance (unless user instructions explicitly specify otherwise).
+- **SAPPHIC & LESBIAN FOCUS:** ${sapphicLevelText ? `This song has an active **Sapphic Meter Level of "${sapphicLevelText}"**. You MUST strictly follow the exact guidelines of this level regarding lesbian romance emphasis, female character focus, and male exclusion. Do not deviate from the requested level.` : 'All lyrics and storytelling must be strictly focused on female characters with sapphic/lesbian preferences. Avoid any reference to men, male names, male pronouns, or the male anatomy under any circumstance (unless user instructions explicitly specify otherwise).'}
 - **DOUBLE & TRIPLE ENTENDRES:** Incorporate clever, layered double or triple entendres where innocent terms (like mechanical components, natural terms, pocket features, or musical descriptions) carry subtle sensual, sapphic connotations. Not all songs need to be explicit or sexual, but subtextual layered meanings are highly valued.
 - Include a specific musical key (e.g., Key: G Major, C Minor) and tempo (BPM) at every [Verse], [Chorus], [Bridge], or song part that perfectly fits the song's tune.
 - Ensure the key chosen matches the female/feminine vocal range. Specifically for deeper voices (such as Emma Vermeer's Feminine Contralto lower registers), choose a bright, clear, and inherently feminine key (e.g., major keys or lighter minor keys like A Minor, C Major, G Major, F Major, E Minor) and specify high-resonance, feminine registers in the tags so that her deep chest vocals are clearly identifiable as a female contralto rather than mistaken for a male voice.

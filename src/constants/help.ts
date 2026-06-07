@@ -63,12 +63,18 @@ Noor Music requires several specialized controls for different file types:
 
 ### C. UI Layout and Navigation
 The interface is divided into four main areas:
-- **Header:** Contains the Noor logo, navigation menus (File, Edit, Singers, Settings, Help), and the primary "Generate Song" action.
+- **Header:** Contains the Noor logo, navigation menus (Singers, Settings, Help), and the primary "Generate Song" action. Note: The generic File & Edit menus are removed to focus purely on the specialized workflow.
 - **Sidebars:** Two 20vw panels for selecting Instruments (Left) and Styles (Right). These also serve as libraries for project assets.
 - **Main Area:** A central workspace that acts as a drop zone for files and displays the current song or selected asset.
 - **Status Bar:** Displays real-time job counters, AI status, and system resource monitoring (CPU/MEM).
 
-## 5. AI Prompt Engineering and Instructions
+## 5. File Operations & Automation
+- **Lyric Instruction JSON**: When a song is generated, upon lyrics done, instantly download a metadata JSON consisting of \`title\`, \`style\`, and \`lyrics\` as \`{title}-instructions.json\`.
+- **Complete Project Saved JSON**: When all files (Lyrics, Karaoke, and Interview) are created, automatically bundle all structural fields and options into \`{title}.json\` for automatic download.
+- **Drag and Drop Settings Restore**: Dragging and dropping this complete JSON back onto the main viewport instantly restores all settings in the workspace.
+- **Reset Options**: The main "Generate Song" dialog provides the direct clearing/reset mechanism via "onClear" action.
+
+## 6. AI Prompt Engineering and Instructions
 
 The "Brain" of the application resides in its system instructions.
 - **Persona Enforcement:** The AI must be instructed to act as the songwriter for Noor, incorporating the band members' specific roles and relationships. This includes their penchant for **double entendres**—singing about innocent objects (e.g., "beaver", "cock", "pussy", "wood") that can be interpreted sexually.
@@ -82,14 +88,14 @@ The "Brain" of the application resides in its system instructions.
   - Ensure all singers are **barefoot**.
   - Respect the specific ethnicities: **Miranda** (Mixed Race: Indian/Dutch/American), **Annelies**, **Fannie**, and **Emma** (Caucasian/Dutch).
 
-## 6. Styling and UX Guidelines
+## 7. Styling and UX Guidelines
 
 - **Theme:** Use a dark scheme with a hint of lavender (#0a0a0f background, #a080ff accent).
 - **Typography:** Use a reasonably large, readable font (18px base).
 - **Contrast:** Ensure all foreground/background pairings meet accessibility standards.
 - **Dialogs:** Custom dialogs must be used instead of browser defaults. They should be 95vw/95vh for main actions and 90vw/90vh for nested ones.
 
-## 7. Development Workflow
+## 8. Development Workflow
 
 1. **Initialize:** Set up the Vite/React/TS environment.
 2. **Theme:** Configure Tailwind with the lavender palette.
@@ -130,7 +136,7 @@ Emma is a confident and mischievous student from Amsterdam. She is lovers with F
 
 ### Band Member Background & Physicality
 - **Age:** Highly youthful, fresh-faced, collegiate appearance matching student-aged young adult women (appearing late-teens/early-twenties), without specifying numerical age numbers in prompts.
-- **Physicality:** They are exceptionally athletic, tone, and highly slender well-trained young women, avoiding any mature or heavy/overweight traits. They have small cup sizes.
+- **Physicality:** They are exceptionally athletic, tone, and highly slender well-trained young women, avoiding any massive or heavy/overweight traits. They have small cup sizes.
 - **Lifestyle:** They prefer to be barefoot everywhere they go and are not ashamed of their bodies. They frequently visit naturist resorts.
 - **Relationships:** While they are two couples (Miranda/Annelies and Fannie/Emma), they behave as a single family, almost a foursome in everything.
 - **Interests:** They have no desire to have children and no interest in men. Their bond is deeply sensual rather than purely sexual.
@@ -159,8 +165,16 @@ Use the sidebars to define your song's foundation:
 2. Enter a theme or description for your song.
 3. The AI will use your selected instruments, styles, and the band's persona to craft unique lyrics.
 4. A new job will be added to the queue.
+5. In the parameters dialog, clicking the "Clear" button resets all custom creation parameters to default immediately.
 
-## 5. Managing Jobs
+## 5. Job Operations & Auto-Downloads
+
+Noor Music automates file management to streamline your production process:
+- **Immediate Lyrics Generation Download**: As soon as lyrics are produced, the app auto-downloads \`{title}-instructions.json\` containing the title, style, and generated lyrics.
+- **Complete Suite Saved Download**: When all jobs complete of the generation cycle (incorporating Lyrics, Karaoke, and Interview), the app automatically bundles your entire workspace options, instruments, configurations, styles, and song content, and auto-downloads it as a single cohesive \`{title}.json\` project file.
+- **Automatic Settings Restoration**: To resume editing or display a saved project, simply drag and drop the \`.json\` bundle file anywhere onto the main viewport area. The app will auto-import all your instruments, rating, dialect, emotions, forbidden topics, and configurations, restoring your creative environment instantly.
+
+## 6. Managing Jobs
 
 The status bar at the bottom tracks your generation progress:
 - **Pending (Yellow):** Jobs waiting in the queue.
@@ -171,7 +185,7 @@ The status bar at the bottom tracks your generation progress:
 ### Job Actions
 Click any counter in the status bar to see a list of recent jobs.
 - **Show:** Open the detailed Job Dialog.
-- **Delete:** Remove a job from the queue.
+- **Delete:** Remove a job from the queue. (Running jobs cannot be deleted!)
 - **Retry:** Re-run a failed job.
 - **Speed Up:** Increase a job's priority.
 
@@ -182,7 +196,7 @@ This dialog provides a deep dive into each AI interaction:
 - **Error:** View detailed error logs if a job fails.
 - **Raw Request/Response:** Inspect the exact payloads sent to and received from the API.
 
-## 6. Working with Assets
+## 7. Working with Assets
 
 ### The Library Sidebars
 The sidebars also act as a library for your project. You can view, delete, or add assets here.
@@ -195,19 +209,72 @@ The sidebars also act as a library for your project. You can view, delete, or ad
 - **JSON/XML:** Explore data in a collapsible tree structure.
 - **Text:** View plain text in a fixed-width font.
 
-### File Operations
-- **Load:** Upload song JSON files or images.
-- **Save:** Download your current song as a JSON file.
-- **Clear:** Reset the environment.
-- **Drag & Drop:** Drop files directly onto the main area to add them to your library.
-
-## 7. The Singers Section
+## 8. The Singers Section
 
 Explore the detailed backgrounds of each band member in the **Singers** menu. Each entry features a full-screen display of the singer's portrait and their biography, with text flowing elegantly around the image.
 
-## 8. System Console
+## 9. System Console
 
 For technical users, the **Terminal** icon in the header opens the System Log. Here you can track all application events, errors, and AI interactions in real-time.
+
+---
+
+## 10. How to Install Noor Music on Ubuntu 24.04 (For Dummies!)
+
+Want to run this wonderful songwriter suite locally on your Ubuntu machine? It is super easy! No tech wizardry required. Just follow this beginner-friendly step-by-step roadmap:
+
+### Step 1: Open Your Terminal
+Don't be scared! Click on the **Activities** button in the top-left corner of your Ubuntu desktop screen. 
+In the search bar that appears, type \`Terminal\`, and click on the black box icon with the little white symbols inside.
+
+### Step 2: Update Your System Tools
+Copy this command, paste it into your terminal, and click **Enter**:
+\`\`\`bash
+sudo apt update && sudo apt upgrade -y
+\`\`\`
+*(Tip: To paste in the terminal, press **Ctrl + Shift + V** on your keyboard. It will ask for your computer's password. Type it and press Enter. The screen won't show dots or stars as you type—this is normal and safe in Ubuntu!)*
+
+### Step 3: Install the "Motor" (Node.js and npm)
+Next, copy and paste this command and press Enter:
+\`\`\`bash
+sudo apt install -y nodejs npm
+\`\`\`
+*(This installs Node.js, which runs our JavaScript code, and npm, which is the package loader.)*
+
+To verify the installation completed successfully, run these commands:
+\`\`\`bash
+node -v
+npm -v
+\`\`\`
+If you see version numbers (such as v18 or v20), then congrats! The primary installation succeeded!
+
+### Step 4: Extract and Enter the App Folder
+Move your downloaded or exported ZIP folder of this app (e.g. \`noor-music.zip\`) into your Downloads folder. Right-click it and select "Extract Here". Or in your Terminal, navigate to the extracted folder:
+\`\`\`bash
+cd ~/Downloads/noor-music
+\`\`\`
+*(Note: Change \`noor-music\` to match the name of the folder where the files were extracted.)*
+
+### Step 5: Install App Requirements
+Let us pull all of the visual packages, icons, and AI libraries the app needs. Paste this in and hit Enter:
+\`\`\`bash
+npm install
+\`\`\`
+
+### Step 6: Start Your Local App Server
+Now, we boot up the engine. Type this in:
+\`\`\`bash
+npm run dev
+\`\`\`
+
+### Step 7: Open Noor Music in Your Browser!
+The terminal will display a local address, typically:
+\`\`\`
+http://localhost:3000   or   http://localhost:5173
+\`\`\`
+Simply right-click that address in the terminal and choose **Open Link**, or type/paste it into your Firefox or Chrome web browser address bar and press Enter.
+
+**Hooray!** Your local instance of Noor Music is now live and running on Ubuntu 24.04! Enjoy writing songs with the band!
 
 ---
 *Created by Katje B.V. (Knowledge And Technology Joyfully Engaged)*
@@ -220,101 +287,94 @@ This document provides a detailed technical analysis of the Noor Music codebase,
 
 ## 1. Architectural Overview
 
-Noor Music is built as a highly modular React application, emphasizing a clean separation between UI, state management, and business logic.
+Noor Music is built as a highly modular React 19 application running in the Vite dev environment. It enforces strict separation between UI, state management, and business logic layers. Furthermore, pure TypeScript modules (.ts) are used for static constants, logic, and interfaces, while JSX UI configurations reside wholly in .tsx modules.
 
 ### Core Directories
-- \`/src/app/components\`: Functional UI components styled with Tailwind CSS.
-- \`/src/app/hooks\`: Custom React hooks for state orchestration and service integration.
-- \`/src/app/services\`: Singleton services for job management, AI interaction, and logging.
-- \`/src/constants\`: Centralized static data, including prompts, instructions, and UI constants.
-- \`/src/types\`: TypeScript interfaces and enums for type safety across the app.
+- \`/src/app/components\`: Pure UI presentation files styled with Tailwind CSS. Includes custom alerts, tree views, zoomable image panels, and markdown renderers.
+- \`/src/app/hooks\`: Custom React hooks for orchestration. Primarily \`useNoorApp\` which acts as the core state hub of the playground.
+- \`/src/app/services\`: Async services (e.g., job runner queue, network connections).
+- \`/src/constants\`: Holds system instructions, prompts, and options list data structures.
+- \`/src/types\`: Domain models, enums, and interfaces for proper type safety.
 
 ## 2. State Management and Hooks
 
 ### \`useNoorApp\`
-The primary hook that manages the application's global state.
-- **Song State:** Tracks the current title, style, and lyrics.
-- **Library State:** Manages the \`leftLibrary\` and \`rightLibrary\` items.
-- **UI State:** Controls dialog visibility and active selections.
-- **Action Handling:** Orchestrates complex actions like file loading, saving, and AI generation.
+The primary hook that manages the application's global state and side effects.
+- **Settings Compilation:** Whenever an Interview is generated (concluding the songwriting cycle), the full block of config states—including rating, dialect, emotions, instruments, styles, silly/epic/innuendo slider outputs—is compiled automatically and packed into the main Song document structure under \`settings\`.
+- **Drag-and-Drop Restoration Engine:** Contains the parsed reader logic that accepts drops of exported \`{title}.json\` files. It reads the \`settings\` metadata property of the JSON file and instantly updates all corresponding React states, resetting the workspace exactly as saved.
+- **Lyrics Instruction Auto-Downloads:** Listens to lyrics completion events to immediately download a compact metadata sheet containing the prompt's instructions under \`{title}-instructions.json\` for SUNO or other render platforms.
 
 ### \`useJobQueue\`
-A bridge between the React UI and the \`JobService\`. It provides a reactive list of jobs and methods to add or manage them.
+A bridge between the React UI and the \`JobService\`. It maintains a priority-sorted (High > Normal > Low) queue and processes up to 5 concurrent worker threads simultaneously, with full pause triggers on 429 warnings.
 
-### \`useLogs\`
-Provides access to the application's event log, used by the \`LogDialog\`.
-
-## 3. Core Services
+## 3. Core Services and Structures
 
 ### \`JobService\`
-A robust, priority-based task runner.
-- **Queue Logic:** Uses an internal array to store pending tasks, ordered by priority (High > Normal > Low).
-- **Concurrency:** Manages a pool of active workers (max 5) to process jobs asynchronously.
-- **Event Emitter:** Notifies subscribers of job state changes (Pending, Running, Done, Failed).
-- **Data Capture:** Automatically captures raw request and response payloads for every AI interaction.
+A priority queue manager with concurrency limits. It preserves the exact request and response headers (shortening long base64 hashes inside) into each Job entity for detailed diagnostic inspection under the dialog's raw requests tab.
 
 ### \`AIService\`
-Handles all communication with the Google Gemini API.
-- **Model:** Utilizes \`gemini-3-flash-preview\` for its balance of speed and reasoning.
-- **System Instructions:** Injects the "Noor" persona and output constraints into every request.
-- **Error Handling:** Implements specific handling for 429 errors, triggering the application's auto-pause mechanism.
+Connects with the Gemini 2.5/3.5 models. Standardized system instructions and prompt prefixes are modularly injected during query formation.
 
-## 4. Specialized Components
+---
 
-### \`MarkdownView\`
-A wrapper around \`react-markdown\` that adds:
-- **Toolbar:** Copy to clipboard, Download as MD, and Export to PDF.
-- **Styling:** Custom CSS for the \`markdown-body\` class, including support for floating images and responsive tables.
-- **Children Support:** Allows rendering custom UI elements (like singer portraits) inside the markdown flow.
+## 4. Ubuntu 24.04 Local Server Deployment (For Dummies!)
 
-### \`ImageView\`
-A high-performance image viewer.
-- **Zoom Logic:** Implements a custom zoom scale (5% to 1000%) controlled by the mouse wheel.
-- **Panning:** Uses a drag-to-scroll mechanism for navigating large images.
-- **Conversion:** Automatically converts web-sourced images to PNG format for local download.
+If you wish to configure and launch Noor Music on your own Ubuntu 24.04 instance, here is the technical sequence of commands simplified for direct success:
 
-### \`TreeView\`
-A recursive data explorer.
-- **XML Parsing:** Includes a custom utility to convert XML strings into a JSON-compatible object structure using \`DOMParser\`.
-- **Collapsible Nodes:** Allows users to drill down into complex data structures.
+1. **System Libraries Sync:** Ensure packages index are fully up to date:
+   \`\`\`bash
+   sudo apt update && sudo apt upgrade -y
+   \`\`\`
 
-## 5. Constants and Configuration
+2. **Server Environment Installation:** Load the local Node.js environment runner:
+   \`\`\`bash
+   sudo apt install -y nodejs npm
+   \`\`\`
 
-### \`INSTRUMENTS\` and \`STYLES\`
-Hierarchical data structures used to populate the sidebars. They define the musical vocabulary available to the user and the AI.
-- **Vocal Styles:** A special category in the \`INSTRUMENTS\` list that allows users to toggle specific singing techniques (Opera, Rap, Yodeling, etc.). The AI only uses these if they are explicitly selected.
+3. **Check Versions:**
+   \`\`\`bash
+   node -v && npm -v
+   \`\`\`
+   *(Note: Ensure Node is at least version 18+ to successfully boot Vite and React 19 rules.)*
 
-### \`SYSTEM_INSTRUCTIONS\`
-The core persona definition for the AI. It includes detailed descriptions of the band members, their roles, relationships, and musical skills.
+4. **Navigate to Code Directory:**
+   \`\`\`bash
+   cd /path/to/extracted/noor-music
+   \`\`\`
 
-### \`GENERATE_PROMPT\`
-A dynamic prompt generator that combines user input with selected instruments, styles, and content ratings to create a precise instruction for the AI.
+5. **Install Packages:** Pull dependencies securely via:
+   \`\`\`bash
+   npm install
+   \`\`\`
 
-## 6. Styling and Theming
+6. **Ignite Dev Server:** Run Vite behind local port 3000 mapping:
+   \`\`\`bash
+   npm run dev
+   \`\`\`
 
-The application uses Tailwind CSS 4.0 with a custom theme defined in \`index.css\`.
-- **Color Palette:**
-  - \`lavender-bg\`: #0a0a0f (Deep space black)
-  - \`lavender-surface\`: #151520 (Dark slate)
-  - \`lavender-border\`: #2a2a3a (Muted purple)
-  - \`lavender-accent\`: #a080ff (Vibrant lavender)
-  - \`lavender-text\`: #e0e0f0 (Soft white)
-- **Global Styles:** Custom scrollbars, tree view dashed lines, and markdown-body layouts.
+7. **Review in Browser:** Open \`http://localhost:3000\` or the designated host output inside your browser!
 
-## 7. Data Structures
+---
+
+## 5. Main Data Structures
 
 ### \`Song\` Interface
 \`\`\`typescript
-interface Song {
+export interface Song {
+  id?: string;
   title: string;
   style: string;
   lyrics: string;
+  story?: string;
+  storyPrompts?: StoryPrompts;
+  interview?: string;
+  settings?: any; // Automated custom settings configurations block
 }
 \`\`\`
 
 ### \`Job\` Interface
 \`\`\`typescript
-interface Job {
+export interface Job {
   id: string;
   name: string;
   priority: 'low' | 'normal' | 'high';

@@ -19,26 +19,6 @@ export const Header: React.FC<HeaderProps> = ({
 
   const menus = [
     {
-      id: 'file',
-      label: 'File',
-      icon: <FileText size={16} />,
-      items: [
-        { id: 'load', label: 'Load', tooltipTitle: 'Load Song Project', tooltipContent: 'Upload a saved project to resume editing.' },
-        { id: 'save', label: 'Save', tooltipTitle: 'Save Song Project', tooltipContent: 'Download current lyrics and configuration as a JSON file.' },
-        { id: 'clear', label: 'Clear Workspace', tooltipTitle: 'Clear Board', tooltipContent: 'Reset the playground back to defaults.' },
-      ]
-    },
-    {
-      id: 'edit',
-      label: 'Edit',
-      icon: <Edit size={16} />,
-      items: [
-        { id: 'cut', label: 'Cut', tooltipTitle: 'Cut Work', tooltipContent: 'Cut selected text to clipboard.' },
-        { id: 'copy', label: 'Copy', tooltipTitle: 'Copy Work', tooltipContent: 'Copy current workspace lyrics or items.' },
-        { id: 'paste', label: 'Paste', tooltipTitle: 'Paste Work', tooltipContent: 'Paste content from clipboard.' },
-      ]
-    },
-    {
       id: 'singers',
       label: 'Singers',
       icon: <Mic2 size={16} />,

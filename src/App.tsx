@@ -96,6 +96,16 @@ export default function App() {
     reverseLyricsEnabled,
     epicLevel,
     rhymeId,
+    sillyLevel,
+    sapphicLevel,
+    musicalKey,
+    bpm,
+    timeSignature,
+    singerChildVoices,
+    singerEmotions,
+    singerPrompts,
+    singerInstruments,
+    singerPartnerUps,
   } = useNoorApp();
 
   const { logs } = useLogs();
@@ -198,6 +208,7 @@ export default function App() {
           isOpen={showGenerate} 
           onClose={() => setShowGenerate(false)} 
           onConfirm={handleGenerate} 
+          currentTitle={song.title}
           selectedInstruments={selectedInstruments}
           selectedStyles={selectedStyles}
           currentDialectId={selectedDialectId}
@@ -207,6 +218,17 @@ export default function App() {
           reverseLyrics={reverseLyricsEnabled}
           currentEpicLevel={epicLevel}
           currentRhymeId={rhymeId}
+          currentSillyLevel={sillyLevel}
+          currentSapphicLevel={sapphicLevel}
+          currentMusicalKey={musicalKey}
+          currentBpm={bpm}
+          currentTimeSignature={timeSignature}
+          initialSingerChildVoices={singerChildVoices}
+          initialSingerEmotions={singerEmotions}
+          initialSingerPrompts={singerPrompts}
+          initialSingerInstruments={singerInstruments}
+          initialSingerPartnerUps={singerPartnerUps}
+          onClear={() => handleAction('clear')}
         />
 
         <KaraokeDialog 

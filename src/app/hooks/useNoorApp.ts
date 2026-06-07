@@ -24,8 +24,11 @@ import { SYSTEM_INSTRUCTIONS_MD, MANUAL_MD, CODE_OVERVIEW_MD } from '../../const
 import { findDialectById } from '../utils/languages';
 import { getInnuendoStep } from '../utils/innuendoLevels';
 import { getEpicStep } from '../utils/epicLevels';
+import { getSillyStep } from '../utils/sillyLevels';
+import { getSapphicStep, SAPPHIC_STEPS } from '../utils/sapphicLevels';
 import { findRhymeTypeById } from '../utils/rhymes';
 import { reverseLyrics } from '../utils/lyricsParser';
+import { findKeyByIndex, findKeyIndexByName, findTimeSignatureByFraction, TIME_SIGNATURES, MUSICAL_KEYS, getTempoName } from '../utils/musicParams';
 
 function getDialectStyleRules(id: string): string {
   switch (id) {
@@ -152,9 +155,153 @@ function getDialectStyleRules(id: string): string {
     case 'his-CEL':
       return "Celt-English (Gaelic Lilt). English spoken with rolling, lyrical Celtic lilt, mysterious gaelic-resonant vowels, and tribal-folk epic phrasing.";
 
+    case 'en-GB':
+      return "British English. You MUST compose these lyrics using standard British English vocabulary, grammar, spelling, and phonetic styles (RP). Use words like 'colour', 'favour', 'theatre', 'whisky', and standard British phrasing like 'cheeky', 'splendid', 'chap', or 'pavement'. Keep the spelling strictly British.";
+
     default:
       const d = findDialectById(id);
       return `${d.name}. Compose in ${d.name}${d.description ? ` (${d.description})` : ''}. Make sure to write authentic lyrics in this regional style or dialect naturally.`;
+  }
+}
+
+function downloadParametersMarkdown(songTitle: string, settings: any) {
+  try {
+    if (!settings) return;
+    const enabledTabs = settings.enabledTabs || {};
+
+    let mdContent = `# Song Parameters Configuration - ${songTitle}\n\n`;
+    mdContent += `Below is the active configuration snapshot used by the Google AI lyric generator to draft and compose **"${songTitle}"**.\n\n`;
+
+    // 1. Base instructions and prompt text
+    mdContent += `## Lyrical Premise & User Directions\n`;
+    mdContent += `- **Core Instructions/Idea:** "${settings.instructions || ''}"\n`;
+    if (settings.musicInspiration) {
+      mdContent += `- **Stylistic Artists/Music Inspiration:** "${settings.musicInspiration}"\n`;
+    }
+    mdContent += `\n`;
+
+    // 2. Sliders
+    let slidersSection = '';
+    if (enabledTabs.innuendoLevel && settings.innuendoLevel !== undefined) {
+      const step = getInnuendoStep(settings.innuendoLevel);
+      slidersSection += `- **Sensual Innuendo Scale Level ${step.level}:** "${step.label}" — *${step.description}*\n`;
+    }
+    if (enabledTabs.epicLevel && settings.epicLevel !== undefined) {
+      const step = getEpicStep(settings.epicLevel);
+      slidersSection += `- **Epic Drama scale Level ${step.level}:** "${step.label}" — *${step.description}*\n`;
+    }
+    if (enabledTabs.sillyLevel && settings.sillyLevel !== undefined) {
+      const step = getSillyStep(settings.sillyLevel);
+      slidersSection += `- **Silliness Whimsicality Level ${step.level}:** "${step.label}" — *${step.description}*\n`;
+    }
+    if (enabledTabs.sapphicLevel && settings.sapphicLevel !== undefined) {
+      const step = getSapphicStep(settings.sapphicLevel);
+      slidersSection += `- **Sapphic/Lesbian Meter Level ${step.level}:** "${step.label}" — *${step.description}*\n`;
+    }
+    if (slidersSection) {
+      mdContent += `## Lyric Mood & Drama Scales\n${slidersSection}\n`;
+    }
+
+    // 3. Genres & Styles
+    let aestheticsSection = '';
+    if (enabledTabs.styles && settings.groupStyles && settings.groupStyles.length > 0) {
+      aestheticsSection += `- **Genre Styles:** ${settings.groupStyles.join(', ')}\n`;
+    }
+    if (enabledTabs.styles && settings.coreGrooves && settings.coreGrooves.length > 0) {
+      aestheticsSection += `- **Core Rhythmic Grooves:** ${settings.coreGrooves.join(', ')}\n`;
+    }
+    if (enabledTabs.instruments && settings.instruments && settings.instruments.length > 0) {
+      aestheticsSection += `- **Featured Ensemble Instruments:** ${settings.instruments.join(', ')}\n`;
+    }
+    if (enabledTabs.sfx && settings.soundEffects && settings.soundEffects.length > 0) {
+      aestheticsSection += `- **Cinematic Ambient Sound Effects (SFX):** ${settings.soundEffects.join(', ')}\n`;
+    }
+    if (aestheticsSection) {
+      mdContent += `## Ensemble Style & Instrumentation\n${aestheticsSection}\n`;
+    }
+
+    // 4. Vocal and performance cast
+    let vocalsSection = '';
+    if (enabledTabs.accent && settings.dialectId) {
+      const dialectNames = settings.dialectId.split(',').filter(Boolean).map((id: string) => findDialectById(id)?.name || id).join(', ');
+      vocalsSection += `- **Vocal Accent / Dialects:** ${dialectNames}\n`;
+    }
+    if (enabledTabs.emotion && settings.emotion) {
+      vocalsSection += `- **Group Track Vibe/Emotion:** ${settings.emotion}\n`;
+      if (settings.singerEmotions) {
+        vocalsSection += `  - *Miranda's Vibe:* ${settings.singerEmotions.miranda || 'Joyful'}\n`;
+        vocalsSection += `  - *Annelies's Vibe:* ${settings.singerEmotions.annelies || 'Joyful'}\n`;
+        vocalsSection += `  - *Fannie's Vibe:* ${settings.singerEmotions.fannie || 'Joyful'}\n`;
+        vocalsSection += `  - *Emma's Vibe:* ${settings.singerEmotions.emma || 'Joyful'}\n`;
+      }
+    }
+    if (enabledTabs.childVoice) {
+      vocalsSection += `- **Juvenile Pitch Filter (Kid Voice Style):** Enabled\n`;
+      if (settings.singerChildVoices) {
+        vocalsSection += `  - *Miranda:* ${settings.singerChildVoices.miranda ? 'Child Voice' : 'Adult Voice'}\n`;
+        vocalsSection += `  - *Annelies:* ${settings.singerChildVoices.annelies ? 'Child Voice' : 'Adult Voice'}\n`;
+        vocalsSection += `  - *Fannie:* ${settings.singerChildVoices.fannie ? 'Child Voice' : 'Adult Voice'}\n`;
+        vocalsSection += `  - *Emma:* ${settings.singerChildVoices.emma ? 'Child Voice' : 'Adult Voice'}\n`;
+      }
+    }
+    if (enabledTabs.partnerUp && settings.singerPartnerUps) {
+      const harmonizers = Object.entries(settings.singerPartnerUps).filter(([_, active]) => active).map(([n]) => n.charAt(0).toUpperCase() + n.slice(1)).join(' & ');
+      vocalsSection += `- **Vocal Harmonies Duet pairings:** ${harmonizers || 'None'}\n`;
+    }
+    if (vocalsSection) {
+      mdContent += `## Vocal Roles & Delivery\n${vocalsSection}\n`;
+    }
+
+    // 5. Rhythmic structure
+    let theorySection = '';
+    if (enabledTabs.musicalKey && settings.musicalKey) {
+      theorySection += `- **Musical Key Archetype:** ${settings.musicalKey}\n`;
+    }
+    if (enabledTabs.beatsPerMinute && settings.bpm) {
+      theorySection += `- **Tempo Speed:** ${settings.bpm} BPM\n`;
+    }
+    if (enabledTabs.timeSignature && settings.timeSignature) {
+      theorySection += `- **Time Signature Rhythm Meter:** ${settings.timeSignature}\n`;
+    }
+    if (enabledTabs.intro && settings.introConfig?.enabled) {
+      theorySection += `- **Instrumental Prelude/Intro Specification:** Included (~${settings.introConfig.duration}s featuring ${settings.introConfig.instruments?.join(', ') || 'theme ensemble'})\n`;
+    }
+    if (enabledTabs.outro && settings.outroConfig?.enabled) {
+      theorySection += `- **Instrumental Postlude/Outro Specification:** Included (~${settings.outroConfig.duration}s featuring ${settings.outroConfig.instruments?.join(', ') || 'theme ensemble'})\n`;
+    }
+    if (theorySection) {
+      mdContent += `## Musical Theory & Arrangement Structures\n${theorySection}\n`;
+    }
+
+    // 6. Poetics & safety
+    let rulesSection = '';
+    if (enabledTabs.rhymeScheme && settings.rhymeId) {
+      rulesSection += `- **Rhyme Poetry Constraint:** ${findRhymeTypeById(settings.rhymeId)?.name || settings.rhymeId}\n`;
+    }
+    if (enabledTabs.lyricsReversal) {
+      rulesSection += `- **Vocal Direction Modulation:** Lyrics Reversal Active\n`;
+    }
+    if (enabledTabs.rating && settings.rating) {
+      rulesSection += `- **Lyrical Safety Boundaries (Rating):** ${settings.rating}\n`;
+    }
+    if (enabledTabs.selfReflecting) {
+      rulesSection += `- **Self-Reflective Storytelling:** ${settings.selfReflect ? 'Allowed/Open' : 'Blocked/Restricted'}\n`;
+    }
+    if (rulesSection) {
+      mdContent += `## Composition Constraints & Safety Rules\n${rulesSection}\n`;
+    }
+
+    // Build blob and trigger download
+    const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeTitle = songTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'untitled';
+    a.href = url;
+    a.download = `${safeTitle}-params.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Failed to download parameters markdown file:', err);
   }
 }
 
@@ -256,6 +403,24 @@ export function useNoorApp() {
     localStorage.setItem('noor-epic-level', epicLevel.toString());
   }, [epicLevel]);
 
+  const [sillyLevel, setSillyLevel] = useState<number>(() => {
+    const saved = localStorage.getItem('noor-silly-level');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('noor-silly-level', sillyLevel.toString());
+  }, [sillyLevel]);
+
+  const [sapphicLevel, setSapphicLevel] = useState<number>(() => {
+    const saved = localStorage.getItem('noor-sapphic-level');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('noor-sapphic-level', sapphicLevel.toString());
+  }, [sapphicLevel]);
+
   const [rhymeId, setRhymeId] = useState<string>(() => {
     return localStorage.getItem('noor-rhyme-id') || 'perfect';
   });
@@ -263,6 +428,31 @@ export function useNoorApp() {
   useEffect(() => {
     localStorage.setItem('noor-rhyme-id', rhymeId);
   }, [rhymeId]);
+
+  const [musicalKey, setMusicalKey] = useState<string>(() => {
+    return localStorage.getItem('noor-musical-key') || 'C Major';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('noor-musical-key', musicalKey);
+  }, [musicalKey]);
+
+  const [bpm, setBpm] = useState<number>(() => {
+    const saved = localStorage.getItem('noor-bpm');
+    return saved ? parseInt(saved, 10) : 120;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('noor-bpm', bpm.toString());
+  }, [bpm]);
+
+  const [timeSignature, setTimeSignature] = useState<string>(() => {
+    return localStorage.getItem('noor-time-signature') || '4/4';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('noor-time-signature', timeSignature);
+  }, [timeSignature]);
   const [helpContent, setHelpContent] = useState<{ title: string; content: string; filename?: string } | null>(null);
   const [selectedSinger, setSelectedSinger] = useState<{ name: string; photo: string; bioPath: string } | null>(null);
   
@@ -273,6 +463,51 @@ export function useNoorApp() {
   useEffect(() => {
     localStorage.setItem('noor-child-voice', childVoice ? 'true' : 'false');
   }, [childVoice]);
+
+  const [singerChildVoices, setSingerChildVoices] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem('noor-singer-child-voices');
+    return saved ? JSON.parse(saved) : { miranda: false, annelies: false, fannie: false, emma: false };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('noor-singer-child-voices', JSON.stringify(singerChildVoices));
+  }, [singerChildVoices]);
+
+  const [singerEmotions, setSingerEmotions] = useState<Record<string, string>>(() => {
+    const saved = localStorage.getItem('noor-singer-emotions');
+    return saved ? JSON.parse(saved) : { miranda: 'Joyful', annelies: 'Joyful', fannie: 'Joyful', emma: 'Joyful' };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('noor-singer-emotions', JSON.stringify(singerEmotions));
+  }, [singerEmotions]);
+
+  const [singerPrompts, setSingerPrompts] = useState<Record<string, string>>(() => {
+    const saved = localStorage.getItem('noor-singer-prompts');
+    return saved ? JSON.parse(saved) : { miranda: '', annelies: '', fannie: '', emma: '' };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('noor-singer-prompts', JSON.stringify(singerPrompts));
+  }, [singerPrompts]);
+
+  const [singerInstruments, setSingerInstruments] = useState<Record<string, string[]>>(() => {
+    const saved = localStorage.getItem('noor-singer-instruments');
+    return saved ? JSON.parse(saved) : { miranda: [], annelies: [], fannie: [], emma: [] };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('noor-singer-instruments', JSON.stringify(singerInstruments));
+  }, [singerInstruments]);
+
+  const [singerPartnerUps, setSingerPartnerUps] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem('noor-singer-partner-ups');
+    return saved ? JSON.parse(saved) : { miranda: false, annelies: false, fannie: false, emma: false };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('noor-singer-partner-ups', JSON.stringify(singerPartnerUps));
+  }, [singerPartnerUps]);
 
   const [selfReflect, setSelfReflect] = useState<boolean>(() => {
     const saved = localStorage.getItem('noor-self-reflect');
@@ -494,90 +729,199 @@ export function useNoorApp() {
     targetInnuendoLevel?: number,
     targetReverseLyrics?: boolean,
     targetEpicLevel?: number,
-    targetRhymeId?: string
+    targetRhymeId?: string,
+    targetSillyLevel?: number,
+    targetSapphicLevel?: number,
+    targetMusicalKey?: string,
+    targetBpm?: number,
+    targetTimeSignature?: string,
+    targetSingerChildVoices?: Record<string, boolean>,
+    targetSingerEmotions?: Record<string, string>,
+    targetSingerPrompts?: Record<string, string>,
+    targetSingerInstruments?: Record<string, string[]>,
+    targetSingerPartnerUps?: Record<string, boolean>,
+    targetEnabledTabs?: Record<string, boolean>
   ) => {
-    const resolvedDialectId = targetDialectId !== undefined ? targetDialectId : selectedDialectId;
-    const resolvedRating = targetRating !== undefined ? targetRating : rating;
-    const resolvedInstruments = targetInstruments !== undefined ? targetInstruments : selectedInstruments;
-    const resolvedStyles = targetStyles !== undefined ? targetStyles : selectedStyles;
-    const resolvedChildVoice = targetChildVoice !== undefined ? targetChildVoice : childVoice;
-    const resolvedSoundEffects = targetSoundEffects !== undefined ? targetSoundEffects : selectedSoundEffects;
-    const resolvedIntroConfig = targetIntroConfig !== undefined ? targetIntroConfig : introConfig;
-    const resolvedOutroConfig = targetOutroConfig !== undefined ? targetOutroConfig : outroConfig;
-    const resolvedSelfReflect = targetSelfReflect !== undefined ? targetSelfReflect : selfReflect;
-    const resolvedInnuendoLevel = targetInnuendoLevel !== undefined ? targetInnuendoLevel : innuendoLevel;
-    const resolvedReverseLyrics = targetReverseLyrics !== undefined ? targetReverseLyrics : reverseLyricsEnabled;
-    const resolvedEpicLevel = targetEpicLevel !== undefined ? targetEpicLevel : epicLevel;
-    const resolvedRhymeId = targetRhymeId !== undefined ? targetRhymeId : rhymeId;
+    const activeEnabledTabs = targetEnabledTabs || {};
 
-    if (targetDialectId !== undefined && targetDialectId !== selectedDialectId) {
+    // 1. Language Dialect Resolution (Default is British English en-GB)
+    let resolvedDialectId = 'en-GB';
+    if (activeEnabledTabs.accent) {
+      resolvedDialectId = targetDialectId !== undefined ? targetDialectId : selectedDialectId;
+    }
+
+    // 2. Instruments Default and Override Rules
+    const instrumentsActive = activeEnabledTabs.instruments;
+    const soloInstrumentsActive = activeEnabledTabs.singerInstruments;
+    
+    let resolvedInstruments: string[] = [];
+    let resolvedSingerInstruments: Record<string, string[]> = {
+      miranda: [],
+      annelies: [],
+      fannie: [],
+      emma: []
+    };
+
+    if (!instrumentsActive && !soloInstrumentsActive) {
+      // Default instruments: bagpipes (Miranda, Emma) and Crwth (Annelies, Fannie)
+      resolvedInstruments = ['bagpipes', 'crwth'];
+      resolvedSingerInstruments = {
+        miranda: ['bagpipes'],
+        emma: ['bagpipes'],
+        annelies: ['crwth'],
+        fannie: ['crwth']
+      };
+    } else if (soloInstrumentsActive) {
+      // Solo instruments replace defaults
+      resolvedSingerInstruments = targetSingerInstruments !== undefined ? targetSingerInstruments : singerInstruments;
+      const uniqueSolo = new Set<string>();
+      Object.values(resolvedSingerInstruments).forEach(arr => {
+        if (arr) arr.forEach(inst => uniqueSolo.add(inst));
+      });
+      resolvedInstruments = Array.from(uniqueSolo);
+    } else {
+      resolvedInstruments = targetInstruments !== undefined ? targetInstruments : selectedInstruments;
+    }
+
+    // 3. Resolve remaining inputs conditionally based on enabled tabs status
+    const resolvedRating = activeEnabledTabs.rating ? (targetRating !== undefined ? targetRating : rating) : '';
+    const resolvedStyles = activeEnabledTabs.styles ? (targetStyles !== undefined ? targetStyles : selectedStyles) : [];
+    const resolvedChildVoice = activeEnabledTabs.childVoice ? (targetChildVoice !== undefined ? targetChildVoice : childVoice) : false;
+    const resolvedSoundEffects = activeEnabledTabs.sfx ? (targetSoundEffects !== undefined ? targetSoundEffects : selectedSoundEffects) : [];
+    const resolvedIntroConfig = activeEnabledTabs.intro ? (targetIntroConfig !== undefined ? targetIntroConfig : introConfig) : { enabled: false, duration: 15, instruments: [] };
+    const resolvedOutroConfig = activeEnabledTabs.outro ? (targetOutroConfig !== undefined ? targetOutroConfig : outroConfig) : { enabled: false, duration: 15, instruments: [] };
+    const resolvedSelfReflect = activeEnabledTabs.selfReflecting ? (targetSelfReflect !== undefined ? targetSelfReflect : selfReflect) : true;
+    const resolvedInnuendoLevel = activeEnabledTabs.innuendoLevel ? (targetInnuendoLevel !== undefined ? targetInnuendoLevel : innuendoLevel) : undefined;
+    const resolvedReverseLyrics = activeEnabledTabs.lyricsReversal ? (targetReverseLyrics !== undefined ? targetReverseLyrics : reverseLyricsEnabled) : false;
+    const resolvedEpicLevel = activeEnabledTabs.epicLevel ? (targetEpicLevel !== undefined ? targetEpicLevel : epicLevel) : undefined;
+    const resolvedRhymeId = activeEnabledTabs.rhymeScheme ? (targetRhymeId !== undefined ? targetRhymeId : rhymeId) : '';
+    const resolvedSillyLevel = activeEnabledTabs.sillyLevel ? (targetSillyLevel !== undefined ? targetSillyLevel : sillyLevel) : undefined;
+    const resolvedSapphicLevel = activeEnabledTabs.sapphicLevel ? (targetSapphicLevel !== undefined ? targetSapphicLevel : sapphicLevel) : undefined;
+    const resolvedMusicalKey = activeEnabledTabs.musicalKey ? (targetMusicalKey !== undefined ? targetMusicalKey : musicalKey) : '';
+    const resolvedBpm = activeEnabledTabs.beatsPerMinute ? (targetBpm !== undefined ? targetBpm : bpm) : undefined;
+    const resolvedTimeSignature = activeEnabledTabs.timeSignature ? (targetTimeSignature !== undefined ? targetTimeSignature : timeSignature) : '';
+    const resolvedSingerChildVoices = activeEnabledTabs.childVoice ? (targetSingerChildVoices !== undefined ? targetSingerChildVoices : singerChildVoices) : { miranda: false, annelies: false, fannie: false, emma: false };
+    const resolvedSingerEmotions = activeEnabledTabs.emotion ? (targetSingerEmotions !== undefined ? targetSingerEmotions : singerEmotions) : { miranda: 'Joyful', annelies: 'Joyful', fannie: 'Joyful', emma: 'Joyful' };
+    const resolvedSingerPrompts = activeEnabledTabs.singers ? (targetSingerPrompts !== undefined ? targetSingerPrompts : singerPrompts) : { miranda: '', annelies: '', fannie: '', emma: '' };
+    const resolvedSingerPartnerUps = activeEnabledTabs.partnerUp ? (targetSingerPartnerUps !== undefined ? targetSingerPartnerUps : singerPartnerUps) : { miranda: false, annelies: false, fannie: false, emma: false };
+
+    // Sync non-undefined states back to application hooks
+    if (activeEnabledTabs.accent && targetDialectId !== undefined && targetDialectId !== selectedDialectId) {
       setSelectedDialectId(targetDialectId);
     }
-    if (targetRating !== undefined && targetRating !== rating) {
+    if (activeEnabledTabs.rating && targetRating !== undefined && targetRating !== rating) {
       setRating(targetRating);
     }
-    if (targetInstruments !== undefined) {
+    if (instrumentsActive && targetInstruments !== undefined) {
       setSelectedInstruments(targetInstruments);
     }
-    if (targetStyles !== undefined) {
+    if (activeEnabledTabs.styles && targetStyles !== undefined) {
       setSelectedStyles(targetStyles);
     }
-    if (targetChildVoice !== undefined) {
+    if (activeEnabledTabs.childVoice && targetChildVoice !== undefined) {
       setChildVoice(targetChildVoice);
     }
-    if (targetSoundEffects !== undefined) {
+    if (activeEnabledTabs.sfx && targetSoundEffects !== undefined) {
       setSelectedSoundEffects(targetSoundEffects);
     }
-    if (targetIntroConfig !== undefined) {
+    if (activeEnabledTabs.intro && targetIntroConfig !== undefined) {
       setIntroConfig(targetIntroConfig);
     }
-    if (targetOutroConfig !== undefined) {
+    if (activeEnabledTabs.outro && targetOutroConfig !== undefined) {
       setOutroConfig(targetOutroConfig);
     }
-    if (targetSelfReflect !== undefined) {
+    if (activeEnabledTabs.selfReflecting && targetSelfReflect !== undefined) {
       setSelfReflect(targetSelfReflect);
     }
-    if (targetInnuendoLevel !== undefined) {
+    if (activeEnabledTabs.innuendoLevel && targetInnuendoLevel !== undefined) {
       setInnuendoLevel(targetInnuendoLevel);
     }
-    if (targetReverseLyrics !== undefined) {
+    if (activeEnabledTabs.lyricsReversal && targetReverseLyrics !== undefined) {
       setReverseLyricsEnabled(targetReverseLyrics);
     }
-    if (targetEpicLevel !== undefined) {
+    if (activeEnabledTabs.epicLevel && targetEpicLevel !== undefined) {
       setEpicLevel(targetEpicLevel);
     }
-    if (targetRhymeId !== undefined) {
+    if (activeEnabledTabs.rhymeScheme && targetRhymeId !== undefined) {
       setRhymeId(targetRhymeId);
+    }
+    if (activeEnabledTabs.sillyLevel && targetSillyLevel !== undefined) {
+      setSillyLevel(targetSillyLevel);
+    }
+    if (activeEnabledTabs.sapphicLevel && targetSapphicLevel !== undefined) {
+      setSapphicLevel(targetSapphicLevel);
+    }
+    if (activeEnabledTabs.musicalKey && targetMusicalKey !== undefined) {
+      setMusicalKey(targetMusicalKey);
+    }
+    if (activeEnabledTabs.beatsPerMinute && targetBpm !== undefined) {
+      setBpm(targetBpm);
+    }
+    if (activeEnabledTabs.childVoice && targetSingerChildVoices !== undefined) {
+      setSingerChildVoices(targetSingerChildVoices);
+    }
+    if (activeEnabledTabs.emotion && targetSingerEmotions !== undefined) {
+      setSingerEmotions(targetSingerEmotions);
+    }
+    if (activeEnabledTabs.singers && targetSingerPrompts !== undefined) {
+      setSingerPrompts(targetSingerPrompts);
+    }
+    if (soloInstrumentsActive && targetSingerInstruments !== undefined) {
+      setSingerInstruments(targetSingerInstruments);
+    }
+    if (activeEnabledTabs.partnerUp && targetSingerPartnerUps !== undefined) {
+      setSingerPartnerUps(targetSingerPartnerUps);
+    }
+    if (activeEnabledTabs.timeSignature && targetTimeSignature !== undefined) {
+      setTimeSignature(targetTimeSignature);
     }
 
     const dialectIds = resolvedDialectId.split(',').filter(Boolean);
-    const primaryDialectId = dialectIds[0] || 'en-US';
-    const dialect = findDialectById(primaryDialectId);
+    const primaryDialectId = dialectIds[0] || 'en-GB';
     let languageInfo = '';
     
-    if (dialectIds.length === 0) {
-      languageInfo = "No specific language or dialect restrictions have been specified. You may default to English or compose the song in whichever language/dialect is best suited for the prompt.";
+    if (dialectIds.length === 0 || resolvedDialectId === 'en-GB') {
+      languageInfo = "British English. You MUST compose these lyrics using standard British English vocabulary, grammar, spelling, and phonetic styles (RP). Use words like 'colour', 'favour', 'theatre', 'whisky', and standard British phrasing like 'cheeky', 'splendid', 'chap', or 'pavement'. Keep the spelling strictly British.";
     } else if (dialectIds.length === 1) {
       languageInfo = getDialectStyleRules(primaryDialectId);
     } else {
-      const languageNames = dialectIds.map(id => findDialectById(id).name).join(', ');
-      const primaryName = findDialectById(primaryDialectId).name;
+      const languageNames = dialectIds.map(id => findDialectById(id)?.name || id).join(', ');
+      const primaryName = findDialectById(primaryDialectId)?.name || primaryDialectId;
       languageInfo = `BILINGUAL/MULTILINGUAL COMPOSITION (CRITICAL): This song MUST be composed in MULTIPLE LANGUAGES. The active languages in order of importance are: ${languageNames}. The primary language is ${primaryName}.
 You must weave these languages together throughout the song - for example, write some verses/chorus lines in the primary language, other sections/verses in the secondary/supporting languages, blending them smoothly and comically/dramatically as appropriate based on their characters. Do not write full songs in only one language.
 Below are the specific styling and composition guidelines for each selected language/accent:
-${dialectIds.map((id, index) => `${index + 1}. [${findDialectById(id).name}]: ${getDialectStyleRules(id)}`).join('\n')}`;
+${dialectIds.map((id, index) => `${index + 1}. [${findDialectById(id)?.name || id}]: ${getDialectStyleRules(id)}`).join('\n')}`;
     }
 
-    const innuendoStep = getInnuendoStep(resolvedInnuendoLevel);
-    const innuendoText = `${innuendoStep.level}. ${innuendoStep.label} - ${innuendoStep.description}`;
+    const innuendoText = resolvedInnuendoLevel !== undefined ? `${getInnuendoStep(resolvedInnuendoLevel).level}. ${getInnuendoStep(resolvedInnuendoLevel).label} - ${getInnuendoStep(resolvedInnuendoLevel).description}` : '';
+    const epicText = resolvedEpicLevel !== undefined ? `${getEpicStep(resolvedEpicLevel).level}. ${getEpicStep(resolvedEpicLevel).label} - ${getEpicStep(resolvedEpicLevel).description}` : '';
+    const rhymeText = resolvedRhymeId ? `${findRhymeTypeById(resolvedRhymeId)?.name}: ${findRhymeTypeById(resolvedRhymeId)?.description}` : '';
+    const sillyText = resolvedSillyLevel !== undefined ? `${getSillyStep(resolvedSillyLevel).level}. ${getSillyStep(resolvedSillyLevel).label} - ${getSillyStep(resolvedSillyLevel).description}` : '';
+    const sapphicText = resolvedSapphicLevel !== undefined ? `${getSapphicStep(resolvedSapphicLevel).level}. ${getSapphicStep(resolvedSapphicLevel).label} - ${getSapphicStep(resolvedSapphicLevel).description}` : '';
 
-    const epicStep = getEpicStep(resolvedEpicLevel);
-    const epicText = `${epicStep.level}. ${epicStep.label} - ${epicStep.description}`;
+    const prompt = GENERATE_LYRICS_PROMPT(
+      instructions, 
+      resolvedInstruments, 
+      resolvedStyles, 
+      resolvedRating, 
+      forbiddenTopics, 
+      languageInfo, 
+      musicInspiration, 
+      coreGrooves, 
+      emotion, 
+      resolvedIntroConfig, 
+      resolvedOutroConfig, 
+      resolvedSelfReflect, 
+      innuendoText, 
+      epicText, 
+      rhymeText, 
+      sillyText,
+      resolvedMusicalKey,
+      resolvedBpm,
+      resolvedTimeSignature,
+      sapphicText
+    );
 
-    const rhymeStep = findRhymeTypeById(resolvedRhymeId);
-    const rhymeText = `${rhymeStep.name}: ${rhymeStep.description}`;
-
-    const prompt = GENERATE_LYRICS_PROMPT(instructions, resolvedInstruments, resolvedStyles, resolvedRating, forbiddenTopics, languageInfo, musicInspiration, coreGrooves, emotion, resolvedIntroConfig, resolvedOutroConfig, resolvedSelfReflect, innuendoText, epicText, rhymeText);
     const generationSettings = {
       instructions,
       musicInspiration: musicInspiration || '',
@@ -592,7 +936,18 @@ ${dialectIds.map((id, index) => `${index + 1}. [${findDialectById(id).name}]: ${
       selfReflect: resolvedSelfReflect,
       innuendoLevel: resolvedInnuendoLevel,
       epicLevel: resolvedEpicLevel,
-      rhymeId: resolvedRhymeId
+      rhymeId: resolvedRhymeId,
+      sillyLevel: resolvedSillyLevel,
+      sapphicLevel: resolvedSapphicLevel,
+      musicalKey: resolvedMusicalKey,
+      bpm: resolvedBpm,
+      timeSignature: resolvedTimeSignature,
+      singerChildVoices: resolvedSingerChildVoices,
+      singerEmotions: resolvedSingerEmotions,
+      singerPrompts: resolvedSingerPrompts,
+      singerInstruments: resolvedSingerInstruments,
+      singerPartnerUps: resolvedSingerPartnerUps,
+      enabledTabs: activeEnabledTabs
     };
 
     let customSystemInstructions = SYSTEM_INSTRUCTIONS_LYRICS;
@@ -708,9 +1063,116 @@ The song MUST conclude with a dedicated pure INSTRUMENTAL OUTRO.
       customSystemInstructions = customSystemInstructions + "\n" + outroConstraints;
     }
 
+    // Add child voice configs per-singer if child voice option is enabled
+    if (resolvedChildVoice) {
+      const activeChildSingerNames = Object.entries(resolvedSingerChildVoices)
+        .filter(([_, isChild]) => isChild)
+        .map(([name]) => name.charAt(0).toUpperCase() + name.slice(1));
+      
+      const activeAdultSingerNames = Object.entries(resolvedSingerChildVoices)
+        .filter(([_, isChild]) => !isChild)
+        .map(([name]) => name.charAt(0).toUpperCase() + name.slice(1));
+
+      let childVoiceConstraints = "\n**VOCAL PROFILE OVERRIDES (CHILD VS ADULT):**\n";
+      if (activeChildSingerNames.length > 0) {
+        childVoiceConstraints += `The following singers MUST sing with a sweet innocent childish voice profile (pitched shift to juvenile heights): [${activeChildSingerNames.join(", ")}].
+When writing lyric section and singer tags for these childish singers, write them using a childish name tag (e.g. [${activeChildSingerNames[0]} - Child Soprano] or similar appropriate childish descriptions like [Child Solo - Sweet and Innocent voice]). Ensure their vocal segments have wholesome, pure themes.\n`;
+      }
+      if (activeAdultSingerNames.length > 0) {
+        childVoiceConstraints += `The following singers MUST sing with their standard, highly mature adult female vocals: [${activeAdultSingerNames.join(", ")}].
+Ensure they use their regular rich, deep, and mature adult tones (e.g., [Miranda - Female Soprano - Mature adult], [Annelies - Female Alto - Mature adult]).\n`;
+      }
+      customSystemInstructions = customSystemInstructions + "\n" + childVoiceConstraints;
+    }
+
+    // Add track emotion per singer
+    let emotionConstraints = "\n**SINGER EMOTIONAL ROLES OVERRIDES:**\n";
+    Object.entries(resolvedSingerEmotions).forEach(([name, emo]) => {
+      const capsName = name.charAt(0).toUpperCase() + name.slice(1);
+      emotionConstraints += `- **${capsName}** MUST deliver her vocal performance with the emotional vibe of **"${emo}"**. Reflect this specific feeling inside her lyric section performance tags and general vocal lines (e.g., [[${capsName} - Female Group - ${emo}]]).\n`;
+    });
+    customSystemInstructions = customSystemInstructions + "\n" + emotionConstraints;
+
+    // Add additional prompts/parts explaining each singer's role
+    const hasActiveSingerPrompts = Object.values(resolvedSingerPrompts).some(p => p.trim() !== "");
+    if (hasActiveSingerPrompts) {
+      let singerPromptsConstraints = "\n**SINGER ROLE AND PART DIRECTIVES/INSTRUCTIONS:**\n";
+      Object.entries(resolvedSingerPrompts).forEach(([name, pr]) => {
+        if (pr.trim()) {
+          const capsName = name.charAt(0).toUpperCase() + name.slice(1);
+          singerPromptsConstraints += `- **${capsName}** part instructions: "${pr.trim()}" (You MUST craft the lyrics, timing, and singing directions for ${capsName} according to this custom prompt directive!)\n`;
+        }
+      });
+      customSystemInstructions = customSystemInstructions + "\n" + singerPromptsConstraints;
+    }
+
+    // Add singer individual instruments
+    const hasActiveSingerInstruments = Object.values(resolvedSingerInstruments).some(insts => insts && insts.length > 0);
+    if (hasActiveSingerInstruments) {
+      let singerInstrumentsConstraints = "\n**SINGER INDIVIDUAL INSTRUMENT PERFORMANCE:**\n";
+      Object.entries(resolvedSingerInstruments).forEach(([name, insts]) => {
+        if (insts && insts.length > 0) {
+          const capsName = name.charAt(0).toUpperCase() + name.slice(1);
+          singerInstrumentsConstraints += `- **${capsName}** is playing individual single-player instruments: [${insts.join(", ")}].
+You MUST explicitly annotate ${capsName}'s singing/performing parts with these specific instrumental solos, guides, or accompaniments. Write them inside square brackets inside her segments (e.g., [${capsName} - Solo: ${insts[0]}] or [${capsName} - Accompanying on ${insts.join(" and ")}]).\n`;
+        }
+      });
+      customSystemInstructions = customSystemInstructions + "\n" + singerInstrumentsConstraints;
+    }
+
+    // Add partner-up constraints
+    const activePartnerSingers = Object.entries(resolvedSingerPartnerUps)
+      .filter(([_, active]) => active)
+      .map(([name]) => name.charAt(0).toUpperCase() + name.slice(1));
+
+    if (activePartnerSingers.length >= 2 && activePartnerSingers.length <= 3) {
+      const partnerSingersCombo = activePartnerSingers.join(" & ");
+      const partnerUpConstraints = `
+**CRITICAL STRUCTURE & HARMONY - SINGER PARTNER-UP PROMPT:**
+The singers [${activePartnerSingers.join(", ")}] are explicitly partnered up to sing COMBINED together for the same verses or segments of the song (singing in unison, duet, or 3-part harmony)!
+- **COMBINED PERFORMANCE:** You MUST write at least two core verse sections or chorus sections specifically featuring all partnered singers singing in a combined tag.
+- **TAG SPECIFICATION:** Use a combined, unified tag in square brackets indicating their names and combined voice specialties (e.g., [${partnerSingersCombo} - Duet Harmony] or [${activePartnerSingers.join(" & ")} - Combined Verse - Melodic Unison]).
+- **INDIVIDUAL PARTS SPREAD:** The other parts of the song can still be sung individually by the remaining singers or in different pairings, but the partnered singers must shine together in unison or harmony for their combined sections.
+`;
+      customSystemInstructions = customSystemInstructions + "\n" + partnerUpConstraints;
+    }
+
+    // Enforce concluding tag
+    const endLyricsConstraint = `
+**CRITICAL LYRIC CONCLUDING CONSTRAINT (MANDATORY):**
+You MUST ensure that the very end of the generated "lyrics" is explicitly styled and structured to have a concluding tag indicating the end of the song. No exceptions.
+The final line of the lyrics MUST be one of the following section tags in square brackets:
+- [Outro] (followed by instrumental fade or concluding musical notes)
+- [Coda] (the concluding passage of the piece)
+- [Fade Out] (gradual decrescendo of vocals or instruments)
+- [Instrumental Outro] (if active or desired to end purely instrumentally)
+Under no circumstances should the lyrics end abruptly after a chorus, verse, or bridge without one of these concluding tags as the final visual/textual block!
+`;
+    customSystemInstructions = customSystemInstructions + "\n" + endLyricsConstraint;
+
     const languageLabel = dialectIds.length === 0 ? 'Default English' : dialectIds.map(id => findDialectById(id).name).join(' + ');
     const jobId = addJob(`Lyrics: ${instructions.substring(0, 20)}...`, 'normal', prompt, apiKey || '', generationSettings, customSystemInstructions);
     log('info', 'Job Added', `New generation job added: ${jobId} (Rating: ${resolvedRating}, Language: ${languageLabel}${emotion ? `, Emotion: ${emotion}` : ''}${resolvedChildVoice ? ', Vocals: Children' : ''})`);
+    
+    // Clear the main screen of all data when a new song is generated
+    setSong({ 
+      title: '', 
+      style: '', 
+      lyrics: '',
+      imagePrompts: { start: '', middle: '', end: '' },
+      story: '',
+      storyPrompts: {
+        miranda: { wan: '', sdxl: '' },
+        annelies: { wan: '', sdxl: '' },
+        fannie: { wan: '', sdxl: '' },
+        emma: { wan: '', sdxl: '' },
+        mirandaAnnelies: { wan: '', sdxl: '' },
+        fannieEmma: { wan: '', sdxl: '' },
+        group: { wan: '', sdxl: '' }
+      }
+    });
+    setViewItem(null);
+
     setShowGenerate(false);
   };
 
@@ -838,6 +1300,42 @@ The song MUST conclude with a dedicated pure INSTRUMENTAL OUTRO.
     else setRightLibrary(prev => prev.filter(i => i.id !== id));
   };
 
+  const loadSongAndSettings = (parsedContent: any): boolean => {
+    if (typeof parsedContent === 'object' && parsedContent !== null && ('lyrics' in parsedContent || 'title' in parsedContent)) {
+      setSong(parsedContent);
+      
+      const s = parsedContent.settings;
+      if (s) {
+        if (Array.isArray(s.selectedInstruments)) setSelectedInstruments(s.selectedInstruments);
+        if (Array.isArray(s.selectedStyles)) setSelectedStyles(s.selectedStyles);
+        if (typeof s.rating === 'string') setRating(s.rating);
+        if (typeof s.selectedDialectId === 'string') setSelectedDialectId(s.selectedDialectId);
+        if (typeof s.innuendoLevel === 'number') setInnuendoLevel(s.innuendoLevel);
+        if (typeof s.epicLevel === 'number') setEpicLevel(s.epicLevel);
+        if (typeof s.sillyLevel === 'number') setSillyLevel(s.sillyLevel);
+        if (typeof s.sapphicLevel === 'number') setSapphicLevel(s.sapphicLevel);
+        if (typeof s.rhymeId === 'string') setRhymeId(s.rhymeId);
+        if (typeof s.musicalKey === 'string') setMusicalKey(s.musicalKey);
+        if (typeof s.bpm === 'number') setBpm(s.bpm);
+        if (typeof s.timeSignature === 'string') setTimeSignature(s.timeSignature);
+        if (typeof s.childVoice === 'boolean') setChildVoice(s.childVoice);
+        if (s.singerChildVoices) setSingerChildVoices(s.singerChildVoices);
+        if (s.singerEmotions) setSingerEmotions(s.singerEmotions);
+        if (s.singerPrompts) setSingerPrompts(s.singerPrompts);
+        if (s.singerInstruments) setSingerInstruments(s.singerInstruments);
+        if (s.singerPartnerUps) setSingerPartnerUps(s.singerPartnerUps);
+        if (typeof s.selfReflect === 'boolean') setSelfReflect(s.selfReflect);
+        if (typeof s.reverseLyricsEnabled === 'boolean') setReverseLyricsEnabled(s.reverseLyricsEnabled);
+        if (Array.isArray(s.selectedSoundEffects)) setSelectedSoundEffects(s.selectedSoundEffects);
+        if (s.introConfig) setIntroConfig(s.introConfig);
+        if (s.outroConfig) setOutroConfig(s.outroConfig);
+        if (s.forbiddenTopics) setForbiddenTopics(s.forbiddenTopics);
+      }
+      return true;
+    }
+    return false;
+  };
+
   const handleFileDrop = (file: File) => {
     const reader = new FileReader();
     reader.onload = (re: any) => {
@@ -851,9 +1349,8 @@ The song MUST conclude with a dedicated pure INSTRUMENTAL OUTRO.
         if (type === 'json') {
           try {
             parsedContent = JSON.parse(re.target.result);
-            if (typeof parsedContent === 'object' && parsedContent !== null && ('lyrics' in parsedContent || 'title' in parsedContent)) {
-              setSong(parsedContent);
-              log('info', 'Song Loaded', `Song "${parsedContent.title || 'Untitled'}" loaded into workspace.`);
+            if (loadSongAndSettings(parsedContent)) {
+              log('info', 'Song Loaded', `Song "${parsedContent.title || 'Untitled'}" and its settings successfully loaded into workspace.`);
             }
           } catch (e) {
             log('error', 'Parse Error', `Could not parse the JSON file "${file.name}".`);
@@ -896,9 +1393,8 @@ The song MUST conclude with a dedicated pure INSTRUMENTAL OUTRO.
               if (type === 'json') {
                 try {
                   parsedContent = JSON.parse(re.target.result);
-                  if (typeof parsedContent === 'object' && parsedContent !== null && ('lyrics' in parsedContent || 'title' in parsedContent)) {
-                    setSong(parsedContent);
-                    log('info', 'Song Loaded', `Song "${parsedContent.title || 'Untitled'}" loaded into workspace.`);
+                  if (loadSongAndSettings(parsedContent)) {
+                    log('info', 'Song Loaded', `Song "${parsedContent.title || 'Untitled'}" and its settings successfully loaded into workspace.`);
                   }
                 } catch (e) {
                   log('error', 'Parse Error', `Could not parse the JSON file "${file.name}".`);
@@ -964,6 +1460,14 @@ The song MUST conclude with a dedicated pure INSTRUMENTAL OUTRO.
         setReverseLyricsEnabled(false);
         setEpicLevel(0);
         setRhymeId('perfect');
+        setSillyLevel(0);
+        setMusicalKey('C Major');
+        setBpm(120);
+        setTimeSignature('4/4');
+        setSingerChildVoices({ miranda: false, annelies: false, fannie: false, emma: false });
+        setSingerEmotions({ miranda: 'Joyful', annelies: 'Joyful', fannie: 'Joyful', emma: 'Joyful' });
+        setSingerPrompts({ miranda: '', annelies: '', fannie: '', emma: '' });
+        setSingerInstruments({ miranda: [], annelies: [], fannie: [], emma: [] });
         const empty = { wan: '', sdxl: '' };
         const emptyPrompts = { miranda: { ...empty }, annelies: { ...empty }, fannie: { ...empty }, emma: { ...empty } };
         setPortraitPrompts({
@@ -1145,7 +1649,7 @@ The song MUST conclude with a dedicated pure INSTRUMENTAL OUTRO.
           // Save song to Right Library
           const item: LibraryItem = {
             id: job.id,
-            name: result.title || 'Untitled Song',
+            name: `${result.title || 'Untitled Song'} (Lyrics)`,
             type: 'song',
             content: {
               ...song,
@@ -1156,9 +1660,20 @@ The song MUST conclude with a dedicated pure INSTRUMENTAL OUTRO.
           };
           addToLibrary(item, 'right');
 
-          // Download song JSON file automatically
-          downloadJson(result, result.title || 'Untitled Song');
-          log('info', 'File Saved', `Freshly generated song "${result.title}" automatically saved and downloaded.`);
+          // Download a JSON file containing the title, style and lyrics in three fields as "{title}-instructions.json"
+          const instructionsData = {
+            title: result.title || 'Untitled Song',
+            style: result.style || '',
+            lyrics: result.lyrics || ''
+          };
+          downloadJson(instructionsData, `${result.title || 'Untitled Song'}-instructions`);
+          log('info', 'File Saved', `Lyrics instructions JSON saved and downloaded as "${result.title || 'Untitled'}-instructions.json".`);
+
+          // Download parameters Markdown file containing only the enabled options/values
+          if (job.generationSettings) {
+            downloadParametersMarkdown(result.title || 'Untitled Song', job.generationSettings);
+            log('info', 'File Saved', `Active song parameters saved and downloaded as "${result.title || 'Untitled'}-params.md".`);
+          }
         }
 
         // 2. Process "Story & Image Prompts" job completion
@@ -1184,11 +1699,44 @@ The song MUST conclude with a dedicated pure INSTRUMENTAL OUTRO.
 
         // 3. Process "Interview" job completion
         else if (job.name.startsWith('Interview: ')) {
-          setSong(prev => ({
-            ...prev,
-            interview: result.interview || prev.interview
-          }));
-          log('info', 'Interview Generated', `Music journalist interview on "${job.name.replace('Interview: ', '')}" finished successfully.`);
+          setSong(prev => {
+            const updatedSong = {
+              ...prev,
+              interview: result.interview || prev.interview,
+              settings: {
+                selectedInstruments,
+                selectedStyles,
+                rating,
+                selectedDialectId,
+                innuendoLevel,
+                epicLevel,
+                sillyLevel,
+                sapphicLevel,
+                rhymeId,
+                musicalKey,
+                bpm,
+                timeSignature,
+                childVoice,
+                singerChildVoices,
+                singerEmotions,
+                singerPrompts,
+                singerInstruments,
+                singerPartnerUps,
+                selfReflect,
+                reverseLyricsEnabled,
+                selectedSoundEffects,
+                introConfig,
+                outroConfig,
+                forbiddenTopics
+              }
+            };
+
+            // Trigger complete song automatic download with options
+            downloadJson(updatedSong, updatedSong.title || 'Untitled Song');
+            log('info', 'File Saved', `Lyrics, Karaoke, and Spoiler compiled! Custom options combined and downloaded as "${updatedSong.title || 'Untitled'}.json".`);
+
+            return updatedSong;
+          });
         }
 
         // 4. Process "Portraits" job completion
@@ -1218,7 +1766,37 @@ The song MUST conclude with a dedicated pure INSTRUMENTAL OUTRO.
         }
       });
     }
-  }, [jobs, appliedJobIds, apiKey, rating, forbiddenTopics, song, addToLibrary]);
+  }, [
+    jobs,
+    appliedJobIds,
+    apiKey,
+    rating,
+    forbiddenTopics,
+    song,
+    addToLibrary,
+    selectedInstruments,
+    selectedStyles,
+    selectedDialectId,
+    innuendoLevel,
+    epicLevel,
+    sillyLevel,
+    sapphicLevel,
+    rhymeId,
+    musicalKey,
+    bpm,
+    timeSignature,
+    childVoice,
+    singerChildVoices,
+    singerEmotions,
+    singerPrompts,
+    singerInstruments,
+    singerPartnerUps,
+    selfReflect,
+    reverseLyricsEnabled,
+    selectedSoundEffects,
+    introConfig,
+    outroConfig
+  ]);
 
   const handleUpdateImagePrompt = (key: 'start' | 'middle' | 'end', value: string) => {
     setSong(prev => ({
@@ -1306,5 +1884,25 @@ The song MUST conclude with a dedicated pure INSTRUMENTAL OUTRO.
     setEpicLevel,
     rhymeId,
     setRhymeId,
+    sillyLevel,
+    setSillyLevel,
+    sapphicLevel,
+    setSapphicLevel,
+    musicalKey,
+    setMusicalKey,
+    bpm,
+    setBpm,
+    timeSignature,
+    setTimeSignature,
+    singerChildVoices,
+    setSingerChildVoices,
+    singerEmotions,
+    setSingerEmotions,
+    singerPrompts,
+    setSingerPrompts,
+    singerInstruments,
+    setSingerInstruments,
+    singerPartnerUps,
+    setSingerPartnerUps,
   };
 }

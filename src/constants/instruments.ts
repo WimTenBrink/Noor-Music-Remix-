@@ -1,208 +1,627 @@
-export const INSTRUMENTS = [
+export interface InstrumentRegistryEntry {
+  name: string;
+  description: string;
+  groups: string[];
+}
+
+export const ALL_INSTRUMENTS: InstrumentRegistryEntry[] = [
+  // --- CELTIC ORIGIN ---
   {
-    type: "Vocal Styles",
-    instruments: [
-      { name: "Opera", description: "Dramatic, powerful singing style often used in classical music." },
-      { name: "Ethereal", description: "Light, airy, and delicate vocal quality." },
-      { name: "High-pitched", description: "Singing in a very high frequency range." },
-      { name: "High-register", description: "Focusing on the upper part of the vocal range." },
-      { name: "Choral", description: "A style mimicking a large group of singers or a choir." },
-      { name: "Alt-Rock", description: "A gritty, alternative rock vocal style." },
-      { name: "Raspy", description: "A rough, husky, or gravelly vocal tone." },
-      { name: "Deep", description: "Singing in a very low, resonant register." },
-      { name: "Low-mid focused", description: "Focusing on the lower-middle part of the vocal range." },
-      { name: "Soulful", description: "Expressive, emotional singing with roots in soul and R&B." },
-      { name: "Rap", description: "Rhythmic and rhyming speech that is chanted rather than sung." },
-      { name: "Wide Vibrato", description: "A dramatic, wide variation in pitch producing a rich tone." },
-      { name: "Controlled", description: "Precise and disciplined vocal delivery." },
-      { name: "Bluesy", description: "A soulful, expressive style with blues inflections." },
-      { name: "Contralto", description: "The lowest female singing voice type." },
-      { name: "Resonant Chest", description: "A powerful, resonant voice coming from the chest register." },
-      { name: "Off-beat", description: "Singing with a unique, syncopated rhythmic feel." },
-      { name: "Scat", description: "Vocal improvisation with wordless vocables, nonsense syllables or without words at all." },
-      { name: "Yodeling", description: "A form of singing which involves rapid and repeated changes of pitch between the low-pitch chest register and the high-pitch head register or falsetto." },
-      { name: "Beatboxing", description: "A form of vocal percussion primarily involving the art of mimicking drum machines." },
-      { name: "Whispering", description: "Singing in a very quiet, breathy voice." },
-      { name: "Growling", description: "A harsh, guttural vocal style often used in heavy metal." },
-      { name: "Falsetto", description: "A method of singing used by male singers, especially tenors, to sing notes higher than their normal range." },
-      { name: "Vibrato", description: "A rapid, slight variation in pitch in singing or playing some musical instruments, producing a stronger or richer tone." },
-      { name: "Throat Singing", description: "A type of singing in which the singer manipulates the resonances created as air travels from the lungs, past the vocal folds, and out of the lips to produce a melody." },
-      { name: "Screaming", description: "A loud, high-pitched vocal technique used for intense emotional expression." },
-      { name: "Melismatic", description: "A style of singing where a single syllable of text is sung while moving between several different notes in succession." },
-      { name: "Sprechgesang", description: "A vocal style between speaking and singing." },
-      { name: "Gregorian Chant", description: "Monophonic, unaccompanied sacred song of the Roman Catholic Church." },
-      { name: "Plainchant", description: "A body of chants used in the liturgies of the Western Church." },
-      { name: "Hildegardian Chant", description: "Melodically expansive and expressive chant style associated with Hildegard von Bingen." },
-      { name: "Monastic Female Chant", description: "Sacred chants performed by female monastic communities." },
-      { name: "Byzantine Female Chant", description: "The traditional liturgical music of the Eastern Orthodox Church performed by female voices." },
-      { name: "Belting", description: "A powerful, bright vocal technique using chest voice in the upper register." },
-      { name: "Vocal Fry", description: "A low, creaky, gravelly vocal sound produced by slowly vibrating vocal folds." },
-      { name: "Feminine Baritone", description: "A deep, warm, and highly resonant lower voice register for women." },
-      { name: "Operatic Soprano", description: "Sweeping, dramatic classical soaring high vocals with pristine operatic technique." },
-      { name: "Sultry Jazz Coo", description: "A soft, warm, sensual, breathy jazz vocal style perfect for low-lit acoustic setups." },
-      { name: "Torch-Song Drama", description: "Emotionally intense, highly dramatic theatrical cabaret vocal phrasing filled with passion." },
-      { name: "Spoken Word Poetry", description: "Highly stylized, fluid and rhythmic poetic recitation delivered directly over the music beat." },
-      { name: "Neo-Soul Falsetto", description: "Sweet, airy, and agile modern R&B high-register phrasing with smooth vocal runs." },
-      { name: "Viking Folk Drone", description: "Hypnotic, guttural, and deep ancient Nordic throat chants accompanied by low wind vibrations." },
-      { name: "Celt-Folk Lilting", description: "Rhythmic, cheerful wordless mouth-music common in traditional Irish and Gaelic singing." },
-      { name: "Hyperpop Vocal-Glitch", description: "High-speed, cartoonish, and pitchshifted digital vocal effects mimicking hyperpop styles." },
-      { name: "Reggae Toasting", description: "Rhythmic chanting, sing-jay delivery, and half-sung speech over heavy bass riddims." },
-      { name: "Fado Mournful", description: "Soulful, deeply emotional, and longing Portuguese style, capturing the spirit of 'saudade'." },
-      { name: "Chanson Recitative", description: "Elegantly spoken-sung, highly narrative French cabaret style focused on storytelling lyricism." }
-    ]
+    name: "Bagpipes",
+    description: "Traditional bellows-blown reed pipes of Celtic/Scottish heritage with constant air drones.",
+    groups: ["Celtic Heritage", "Norse & Baltic Folk", "Woodwinds & Free Reeds"]
   },
   {
-    type: "Loud",
-    instruments: [
-      { name: "Korean Buk", description: "A large, loud traditional Korean barrel drum." },
-      { name: "Chinese Chao Gong", description: "A large, powerful bronze gong with a deep, crashing sound." },
-      { name: "Taiko Drums", description: "Powerful, large Japanese percussion instruments known for their thunderous sound." },
-      { name: "War Horn", description: "A loud, primitive brass instrument used to signal on the battlefield." },
-      { name: "Air Horn", description: "An extremely loud pneumatic device used for signaling or as a sound effect." },
-      { name: "Thunder Sheet", description: "A large, thin sheet of metal that creates a loud, crashing sound like thunder when shaken." },
-      { name: "Crash Cymbals", description: "Loud, explosive cymbals struck together for dramatic musical accentuation." }
-    ]
+    name: "Bodhrán",
+    description: "Traditional Irish handheld frame drum beaten with a double-headed wooden tipper.",
+    groups: ["Celtic Heritage", "Norse & Baltic Folk", "Drums & Deep Skins"]
   },
   {
-    type: "Ancient",
-    instruments: [
-      { name: "Lyre", description: "A string instrument known for its use in Greek classical antiquity and later periods." },
-      { name: "Aulos", description: "An ancient Greek wind instrument, depicted in art and also attested by archaeology." },
-      { name: "Sistrum", description: "A musical instrument of the percussion family, associated with ancient Egypt." },
-      { name: "Kithara", description: "An ancient Greek musical instrument in the lyre family." },
-      { name: "Panpipes", description: "A musical instrument based on the principle of the closed tube, consisting of multiple pipes of gradually increasing length." },
-      { name: "Harp", description: "A stringed musical instrument that has a number of individual strings running at an angle to its soundboard." },
-      { name: "Lute", description: "Any plucked string instrument with a neck and a deep round back enclosing a hollow cavity." },
-      { name: "Cymbals", description: "A common percussion instrument, consisting of thin, normally round plates of various alloys." },
-      { name: "Drums", description: "A member of the percussion group of musical instruments." },
-      { name: "Flute", description: "A family of musical instruments in the woodwind group." },
-      { name: "Trumpet", description: "A brass instrument commonly used in classical and jazz ensembles." },
-      { name: "Psaltery", description: "A stringed instrument of the zither family." },
-      { name: "Dulimer", description: "A fretted string instrument of the zither family, typically with three or four strings." },
-      { name: "Rebec", description: "A bowed stringed instrument of the Medieval and early Renaissance eras." },
-      { name: "Shawm", description: "A conical bore, double-reed woodwind instrument made in Europe from the 12th century to the present day." },
-      { name: "Citole", description: "An archaic musical instrument, of which the exact form is uncertain." },
-      { name: "Gittern", description: "A relatively small gut-strung round-backed instrument that first appeared in 13th-century Spain." },
-      { name: "Symphonia", description: "A name applied to various musical instruments in the Middle Ages." },
-      { name: "Organistrum", description: "An early form of the hurdy-gurdy." },
-      { name: "Crwth", description: "An ancient Celtic bowed lyre." },
-      { name: "Cornu", description: "An ancient Roman brass instrument about 3 m long in the shape of a letter 'G'." },
-      { name: "Lituus", description: "An ancient Etruscan and Roman high-pitched brass instrument." },
-      { name: "Buccina", description: "A brass instrument used in the ancient Roman army." },
-      { name: "Tuba", description: "A straight, bronze trumpet of the ancient Romans." },
-      { name: "Hydraulis", description: "An early type of pipe organ that was powered by water." }
-    ]
+    name: "Crwth",
+    description: "Ancient Celtic six-string bowed lyre originating from medieval Wales.",
+    groups: ["Celtic Heritage", "Acoustic Plucked Strings", "Ancient & Mythological", "Classical Bowed Strings"]
   },
   {
-    type: "Modern",
-    instruments: [
-      { name: "Electric Guitar", description: "A guitar that requires external amplification to be heard." },
-      { name: "Bass Guitar", description: "A stringed instrument similar to an electric guitar but with a longer neck and scale length, and four to six strings." },
-      { name: "Drums", description: "A set of percussion instruments, typically including a bass drum, snare drum, and cymbals." },
-      { name: "Synthesizer", description: "An electronic musical instrument that generates audio signals." },
-      { name: "Digital Piano", description: "A type of electronic keyboard instrument designed to serve primarily as an alternative to the traditional acoustic piano." },
-      { name: "Drum Machine", description: "An electronic musical instrument that creates percussion sounds, drum beats, and patterns." },
-      { name: "Keytar", description: "A lightweight synthesizer that is supported by a strap around the neck and shoulders, similar to a guitar." },
-      { name: "Electric Violin", description: "A violin equipped with an electronic output of its sound." },
-      { name: "Sampler", description: "An electronic or digital musical instrument which uses sound recordings of real instrument sounds, excerpts from recorded songs or the sounds of nature." }
-    ]
+    name: "Carnyx",
+    description: "Iron Age Celtic bronze war trumpet with a bell shaped like an open-mouthed wild boar.",
+    groups: ["Celtic Heritage", "Brass & Fanfare Horns", "Ancient & Mythological"]
   },
   {
-    type: "Classic & Folk",
-    instruments: [
-      { name: "Bagpipes", description: "A woodwind instrument using enclosed reeds fed from a constant reservoir of air in the form of a bag." },
-      { name: "Crwth", description: "An ancient Celtic bowed lyre." },
-      { name: "Violin", description: "A string instrument, usually with four strings tuned in perfect fifths." },
-      { name: "Cello", description: "A bowed string instrument of the violin family." },
-      { name: "Harp", description: "A stringed musical instrument that has a number of individual strings running at an angle to its soundboard." },
-      { name: "Lute", description: "Any plucked string instrument with a neck and a deep round back enclosing a hollow cavity, usually with a sound hole or opening in the body." },
-      { name: "Flute", description: "A family of musical instruments in the woodwind group." },
-      { name: "Clarinet", description: "A type of woodwind instrument that has a single-reed mouthpiece, a straight, cylindrical tube with an almost cylindrical bore, and a flared bell." },
-      { name: "Oboe", description: "A type of double-reed woodwind instrument." },
-      { name: "Bassoon", description: "A woodwind instrument in the double reed family, which plays in the tenor and bass ranges." },
-      { name: "Mandolin", description: "A musical instrument in the lute family and is usually plucked with a plectrum." },
-      { name: "Banjo", description: "A four-, five-, or six-stringed instrument with a thin membrane stretched over a frame or cavity as a resonator, called the head." },
-      { name: "Accordion", description: "A family of box-shaped musical instruments of the bellows-driven free-reed aerophone type." },
-      { name: "Nyckelharpa", description: "A traditional Swedish keyed fiddle with sympathetic strings." },
-      { name: "Dulceola", description: "A rare Victorian zither-keyboard instrument with a delicate music-box tone." }
-    ]
+    name: "Celtic Harp",
+    description: "A wire-strung triangular harp centerpiece of traditional Irish and Scottish folklore.",
+    groups: ["Celtic Heritage", "Acoustic Plucked Strings", "Ancient & Mythological"]
   },
   {
-    type: "Keyboards & Organs",
-    instruments: [
-      { name: "Harpsichord", description: "A baroque keyboard instrument where strings are plucked rather than struck." },
-      { name: "Mellotron", description: "A vintage electro-mechanical keyboard that plays sounds recorded on tape loops." },
-      { name: "Celesta", description: "A keyboard instrument resembling a small upright piano, with metal plates struck by hammers." },
-      { name: "Pipe Organ", description: "A massive classical wind instrument played from a keyboard, with pipes of various scales." },
-      { name: "Clavinet", description: "An electronically amplified clavichord popular in funk and progressive rock." },
-      { name: "Harmonium", description: "A pump organ that generates sound as air flows past vibrating thin metal reeds." }
-    ]
+    name: "Tin Whistle",
+    description: "Simple six-holed metal wind flute providing high penny-whistle melodies.",
+    groups: ["Celtic Heritage", "Norse & Baltic Folk", "Woodwinds & Free Reeds"]
   },
   {
-    type: "Rare & Exotic Strings",
-    instruments: [
-      { name: "Guzheng", description: "A traditional Chinese plucked zither with a resonant, cascading voice." },
-      { name: "Hurdy-Gurdy", description: "A mechanical violin that uses a crank-turned wheel to rub against strings." },
-      { name: "Bouzouki", description: "A long-necked traditional Greek lute with a bright, metallic chime." },
-      { name: "Shamisen", description: "A three-stringed traditional Japanese lute played with a large plectrum." },
-      { name: "Kora", description: "A West African 21-string lute-bridge-harp with an elegant, flowing harp-like tone." },
-      { name: "Oud", description: "A classical short-necked pear-shaped fretless lute popular in Middle Eastern music." },
-      { name: "Sitar", description: "A plucked stringed instrument used in Hindustani classical music, known for its sympathetic strings and buzzing tone." }
-    ]
+    name: "Irish Bouzouki",
+    description: "Folk variant of the Greek bouzouki with a flat back, producing a ringing, bright string chime.",
+    groups: ["Celtic Heritage", "Acoustic Plucked Strings"]
+  },
+
+  // --- ROMAN & MEDITERRANEAN ---
+  {
+    name: "Cornu",
+    description: "Circular, massive G-shaped ancient Roman army brass horn about 3 meters long.",
+    groups: ["Roman & Mediterranean", "Brass & Fanfare Horns", "Ancient & Mythological"]
   },
   {
-    type: "Percussion",
-    instruments: [
-      { name: "Gong", description: "An East and Southeast Asian musical percussion instrument that takes the form of a flat, circular metal disc which is hit with a mallet." },
-      { name: "Xylophone", description: "A musical instrument in the percussion family that consists of wooden bars struck by mallets." },
-      { name: "Marimba", description: "A percussion instrument consisting of a set of wooden bars struck with yarn or rubber mallets to produce musical tones." },
-      { name: "Tambourine", description: "A musical instrument in the percussion family consisting of a frame, often of wood or plastic, with pairs of small metal jingles." },
-      { name: "Triangle", description: "An idiophone type of musical instrument in the percussion family." },
-      { name: "Bells", description: "A directly struck idiophone percussion instrument." },
-      { name: "Timpani", description: "Musical instruments in the percussion family, a type of drum, they consist of a membrane called a head stretched over a large bowl traditionally made of copper." },
-      { name: "Cajon", description: "A box-shaped percussion instrument originally from Peru, played by slapping the front or rear faces with the hands, fingers, or sometimes implements such as brushes, mallets, or sticks." },
-      { name: "Djembe", description: "A rope-tuned skin-covered goblet drum played with bare hands, originally from West Africa." },
-      { name: "Steel Drum", description: "A musical instrument originating from Trinidad and Tobago." },
-      { name: "Udu", description: "An earthen clay drum of Nigerian origin played with hands and fingers." },
-      { name: "Hang Drum", description: "A modern steel handpan with a soft, ethereal, bell-like resonance." }
-    ]
+    name: "Lituus",
+    description: "Ancient Etruscan and Roman long bronze signaling trumpet curved at the end like a staff.",
+    groups: ["Roman & Mediterranean", "Brass & Fanfare Horns", "Ancient & Mythological"]
   },
   {
-    type: "Ambient & Cinematic Textures",
-    instruments: [
-      { name: "Bowed Cymbal", description: "A metal cymbal played with a violin bow, creating an eerie, sustained metallic scrape." },
-      { name: "EBow Guitar", description: "An electric guitar played with an electromagnetic device, producing infinite violin-like sustain." },
-      { name: "Choir Pads", description: "Lush synthesized vocal sounds that create a soft, mystical background bed." },
-      { name: "Sub-Bass Drone", description: "A deep, vibrating low-frequency electronic tone that fills the sonic space." },
-      { name: "Rain Stick", description: "A long hollow tube filled with pebbles that mimics the sound of falling rain when tilted." },
-      { name: "Wind Chimes", description: "A cluster of metal tubes that create delicate random sparkling high-pitched tones when blown." }
-    ]
+    name: "Buccina",
+    description: "High-pitched ancient Roman tactical horn wrapped in a tight spiral shell shape.",
+    groups: ["Roman & Mediterranean", "Brass & Fanfare Horns", "Ancient & Mythological"]
   },
   {
-    type: "Experimental",
-    instruments: [
-      { name: "Theremin", description: "An electronic musical instrument controlled without physical contact by the thereminist." },
-      { name: "Waterphone", description: "A type of inharmonic acoustic percussion instrument consisting of a stainless steel resonator bowl or pan with a cylindrical neck and bronze rods of different lengths and diameters around the rim of the bowl." },
-      { name: "Stylophone", description: "A miniature analog stylus-operated keyboard." },
-      { name: "Modular Synth", description: "A type of synthesizer consisting of separate specialized modules." },
-      { name: "Circuit-Bent Toys", description: "The creative, chance-based customization of the circuits within electronic devices such as low-voltage, battery-powered guitar effects, children's toys and small digital synthesizers to create new musical or visual instruments and sound generators." },
-      { name: "Glass Harmonica", description: "A type of musical instrument that uses a series of glass bowls or goblets graduated in size to produce musical tones by means of friction." },
-      { name: "Laser Harp", description: "An electronic musical user interface and laser display, in which a number of laser beams are used to be plucked by the musician." },
-      { name: "Otamatone", description: "An electronic musical synthesizer." },
-      { name: "Apprehension Engine", description: "A custom experimental instrument designed to create horror-style unsettling sounds." },
-      { name: "Double-Necked Bass-Guitar", description: "A custom hybrid instrument combining a four-string bass and a six-string guitar." }
-    ]
+    name: "Roman Tuba",
+    description: "Straight, cylindrical heavy-bronze military trumpet of the Roman legions.",
+    groups: ["Roman & Mediterranean", "Brass & Fanfare Horns", "Ancient & Mythological"]
   },
   {
-    type: "Brass & Woodwind",
-    instruments: [
-      { name: "Trumpet", description: "A brass instrument commonly used in classical and jazz ensembles." },
-      { name: "Trombone", description: "A musical instrument in the brass family." },
-      { name: "Saxophone", description: "A family of woodwind instruments usually made of brass and played with a single-reed mouthpiece." },
-      { name: "Tuba", description: "The largest and lowest-pitched musical instrument in the brass family." },
-      { name: "French Horn", description: "A brass instrument made of tubing wrapped into a coil with a flared bell." },
-      { name: "Recorder", description: "A family of woodwind musical instruments in the group known as internal duct flutes." },
-      { name: "Pan Flute", description: "A musical instrument based on the principle of the closed tube, consisting of multiple pipes of gradually increasing length." }
-    ]
+    name: "Tympanum",
+    description: "Large shallow Roman hand-held frame drum beaten with a stick or fingers.",
+    groups: ["Roman & Mediterranean", "Drums & Deep Skins"]
+  },
+  {
+    name: "Sistrum Romanum",
+    description: "Metal rattle of ancient Egyptian origin, heavily used in Roman mystery cults.",
+    groups: ["Roman & Mediterranean", "Percussion & Bells", "Ancient & Mythological"]
+  },
+
+  // --- EAST ASIAN ---
+  {
+    name: "Guzheng",
+    description: "Cascading, expressive Chinese plucked zither with 21 strings and movable bridges.",
+    groups: ["East Asian Traditional", "Acoustic Plucked Strings"]
+  },
+  {
+    name: "Pipa",
+    description: "Four-stringed pear-shaped Chinese plucked lute played with fluid finger dexterity.",
+    groups: ["East Asian Traditional", "Acoustic Plucked Strings"]
+  },
+  {
+    name: "Erhu",
+    description: "Expressive, sorrowful two-stringed Chinese spike fiddle played with an interwoven bow.",
+    groups: ["East Asian Traditional", "Classical Bowed Strings"]
+  },
+  {
+    name: "Dizi",
+    description: "Traditional Chinese transverse bamboo flute featuring a buzzing membrane.",
+    groups: ["East Asian Traditional", "Woodwinds & Free Reeds"]
+  },
+  {
+    name: "Sheng",
+    description: "Ancient Chinese multi-pipe free-reed mouth-blown organ producing polyphonic chords.",
+    groups: ["East Asian Traditional", "Woodwinds & Free Reeds"]
+  },
+  {
+    name: "Guqin",
+    description: "A plucked seven-string Chinese zither embodying scholarly contemplation and refined slides.",
+    groups: ["East Asian Traditional", "Acoustic Plucked Strings", "Ancient & Mythological"]
+  },
+
+  // --- STEPPE & MONGOLIAN ---
+  {
+    name: "Morin Khuur",
+    description: "Plaintive two-stringed Mongolian horsehead fiddle producing warm, cello-like tones.",
+    groups: ["Steppe & Mongolian", "Classical Bowed Strings"]
+  },
+  {
+    name: "Yatga",
+    description: "Traditional Mongolian plucked zither with movable bridges and soaring slide orchestration.",
+    groups: ["Steppe & Mongolian", "Acoustic Plucked Strings"]
+  },
+  {
+    name: "Tovshuur",
+    description: "Two-stringed West Mongolian plucked lute traditionally used to accompany epic storytellers.",
+    groups: ["Steppe & Mongolian", "Acoustic Plucked Strings"]
+  },
+  {
+    name: "Tsuur",
+    description: "Ancient end-blown wooden flute associated with summoning nature, water, and animal spirits.",
+    groups: ["Steppe & Mongolian", "Woodwinds & Free Reeds", "Ancient & Mythological"]
+  },
+  {
+    name: "Shanz",
+    description: "Three-stringed Mongolian plucked lute with a snake-skin resonator, delivering sharp twangs.",
+    groups: ["Steppe & Mongolian", "Acoustic Plucked Strings"]
+  },
+  {
+    name: "Ikh Khuur",
+    description: "Large, deep-voiced bass horsehead fiddle providing rumbling acoustic registers.",
+    groups: ["Steppe & Mongolian", "Classical Bowed Strings"]
+  },
+  {
+    name: "Mongolian Aman Khuur",
+    description: "Traditional metal mouth jaw harp producing bouncing, rubbery overtone vibrations.",
+    groups: ["Steppe & Mongolian", "Percussion & Bells"]
+  },
+
+  // --- AFRICAN & TRIBAL ---
+  {
+    name: "Djembe",
+    description: "Rope-tuned goblet drum covered in goatskin, played with hands for high slaps and deep bass.",
+    groups: ["African & Tribal Beats", "Drums & Deep Skins"]
+  },
+  {
+    name: "Kora",
+    description: "West African 21-string harp-lute with a large calabash resonator and cascading harp-like tones.",
+    groups: ["African & Tribal Beats", "Acoustic Plucked Strings"]
+  },
+  {
+    name: "Kalimba",
+    description: "Handheld African thumb piano consisting of metal tines mounted on a resonant wooden box.",
+    groups: ["African & Tribal Beats", "Percussion & Bells"]
+  },
+  {
+    name: "Balafon",
+    description: "West African wooden pitched xylophone featuring hollow gourd resonators underneath.",
+    groups: ["African & Tribal Beats", "Percussion & Bells"]
+  },
+  {
+    name: "Talking Drum",
+    description: "Squeezable pitch-shifting hourglass drum mimicking vocal inflections.",
+    groups: ["African & Tribal Beats", "Drums & Deep Skins"]
+  },
+  {
+    name: "Udu",
+    description: "Traditional Nigerian baked clay vessel side-hole pot drum creating deep water-drop thuds.",
+    groups: ["African & Tribal Beats", "Drums & Deep Skins"]
+  },
+  {
+    name: "Shekere",
+    description: "Dried gourd instrument covered in a woven net of seeds/beads for crisp shakes.",
+    groups: ["African & Tribal Beats", "Percussion & Bells"]
+  },
+
+  // --- AMERICAS & ANDEAN ---
+  {
+    name: "Native American Flute",
+    description: "Atmospheric, air-flowing wooden flute featuring a dual-chamber sound mechanism.",
+    groups: ["Americas & Tribal Winds", "Woodwinds & Free Reeds"]
+  },
+  {
+    name: "Hoop Drum",
+    description: "Traditional raw-hide skin single-headed shallow frame drum beaten with a padded mallet.",
+    groups: ["Americas & Tribal Winds", "Drums & Deep Skins"]
+  },
+  {
+    name: "Water Drum",
+    description: "Clay or wooden water-filled drum providing a high-resonance splashy thud sound.",
+    groups: ["Americas & Tribal Winds", "Drums & Deep Skins"]
+  },
+  {
+    name: "Deer Hoof Rattle",
+    description: "Authentic rattle made of clustered deer hooves producing a dry wood click-clack.",
+    groups: ["Americas & Tribal Winds", "Percussion & Bells"]
+  },
+  {
+    name: "Zampona / Siku",
+    description: "Andean panpipe of multiple hollow bamboo tubes aligned in rows, played in pairs.",
+    groups: ["Americas & Tribal Winds", "Woodwinds & Free Reeds"]
+  },
+  {
+    name: "Charango",
+    description: "Small ten-stringed Andean guitar historically made with an armadillo shell body.",
+    groups: ["Americas & Tribal Winds", "Acoustic Plucked Strings"]
+  },
+  {
+    name: "Bombo Legüero",
+    description: "Argentine deep hollowed tree trunk drum covered in sheepskin with hair on.",
+    groups: ["Americas & Tribal Winds", "Drums & Deep Skins"]
+  },
+  {
+    name: "Quena",
+    description: "Wooden end-notched flute of the Andes with a sweet, highly expressive breath sound.",
+    groups: ["Americas & Tribal Winds", "Woodwinds & Free Reeds"]
+  },
+
+  // --- MIDDLE EASTERN & INDIAN ---
+  {
+    name: "Oud",
+    description: "Classical pear-shaped fretless short-necked lute widely used in Arabic musical suites.",
+    groups: ["Middle Eastern & Indian", "Roman & Mediterranean", "Acoustic Plucked Strings"]
+  },
+  {
+    name: "Darbuka",
+    description: "Middle Eastern hourglass hand drum providing crisp metallic rim clacks and round bass thuds.",
+    groups: ["Middle Eastern & Indian", "Roman & Mediterranean", "Drums & Deep Skins"]
+  },
+  {
+    name: "Middle-Eastern Ney",
+    description: "Ancient Persian end-blown cane flute producing highly breathy, mystical, layered overtones.",
+    groups: ["Middle Eastern & Indian", "Woodwinds & Free Reeds"]
+  },
+  {
+    name: "Kanun",
+    description: "Trapezoidal lap zither with 72 strings and metallic levers to shift microtonal maqams.",
+    groups: ["Middle Eastern & Indian", "Roman & Mediterranean", "Acoustic Plucked Strings"]
+  },
+  {
+    name: "Riq",
+    description: "An ornate Middle Eastern tambourine featuring thick brass jingles and tight skin play.",
+    groups: ["Middle Eastern & Indian", "Percussion & Bells"]
+  },
+  {
+    name: "Sitar",
+    description: "Plucked stringed Indian classical instrument with a gourd resonator and sympathetic buzzing wires.",
+    groups: ["Middle Eastern & Indian", "Acoustic Plucked Strings"]
+  },
+  {
+    name: "Tabla",
+    description: "Pairs of hand-played tuned copper and wood Indian kettledrums with iron-sand centers.",
+    groups: ["Middle Eastern & Indian", "Drums & Deep Skins"]
+  },
+  {
+    name: "Indian Harmonium",
+    description: "Hand-pumped bellow-driven keyboard reed instrument widely used in Indian devotional chants.",
+    groups: ["Middle Eastern & Indian", "Modern Electronic & Synths"]
+  },
+  {
+    name: "Bansuri",
+    description: "Traditional Indian side-blown transverse bamboo flute of soft, warm, expressive qualities.",
+    groups: ["Middle Eastern & Indian", "Woodwinds & Free Reeds"]
+  },
+  {
+    name: "Sarod",
+    description: "Fretless classical Indian string instrument with a metal fingerboard producing deep slide chimes.",
+    groups: ["Middle Eastern & Indian", "Acoustic Plucked Strings"]
+  },
+  {
+    name: "Tanpura",
+    description: "Plucked drone lute with four or five wire strings producing an atmospheric harmonic backdrop.",
+    groups: ["Middle Eastern & Indian", "Acoustic Plucked Strings"]
+  },
+
+  // --- NORSE & BALTIC ---
+  {
+    name: "Tagelharpa",
+    description: "Traditional horsehair bowed lyre of Scandinavia producing ancient buzzy overtones.",
+    groups: ["Norse & Baltic Folk", "Celtic Heritage", "Classical Bowed Strings", "Ancient & Mythological"]
+  },
+  {
+    name: "Bukkehorn",
+    description: "Traditional wind instrument carved from a goat's horn with fingerholes.",
+    groups: ["Norse & Baltic Folk", "Woodwinds & Free Reeds", "Ancient & Mythological"]
+  },
+  {
+    name: "Kravik Lyre",
+    description: "Medieval Scandinavian seven-string lyre reconstructed from archeological Norse finds.",
+    groups: ["Norse & Baltic Folk", "Celtic Heritage", "Acoustic Plucked Strings", "Ancient & Mythological"]
+  },
+  {
+    name: "Gjallarhorn",
+    description: "Large, booming horn used to make loud, calling signals across landscapes and mountains.",
+    groups: ["Norse & Baltic Folk", "Brass & Fanfare Horns"]
+  },
+
+  // --- JAPANESE OR ASIA ---
+  {
+    name: "Taiko Drums",
+    description: "Large, thunderous Japanese ritual barrel drums played with wooden bachi mallets.",
+    groups: ["East Asian Traditional", "Drums & Deep Skins"]
+  },
+  {
+    name: "Shamisen",
+    description: "Three-stringed Japanese lute with a square skin body plucked with a large plectrum.",
+    groups: ["East Asian Traditional", "Acoustic Plucked Strings"]
+  },
+  {
+    name: "Koto",
+    description: "Thirteen-stringed Japanese national zither featuring movable bridges and pristine chirps.",
+    groups: ["East Asian Traditional", "Acoustic Plucked Strings"]
+  },
+  {
+    name: "Shakuhachi",
+    description: "Traditional Japanese end-blown bamboo flute used by Zen monks for breath meditation.",
+    groups: ["East Asian Traditional", "Woodwinds & Free Reeds"]
+  },
+
+  // --- ABORIGINAL ---
+  {
+    name: "Didgeridoo",
+    description: "Deep, resonant hollowed eucalyptus drone wind instrument of northern Australia.",
+    groups: ["African & Tribal Beats", "Woodwinds & Free Reeds", "Drums & Deep Skins"]
+  },
+  {
+    name: "Clapsticks / Bilma",
+    description: "Traditional Australian hardwood rhythm sticks struck together to maintain tribal vocal beats.",
+    groups: ["African & Tribal Beats", "Percussion & Bells"]
+  },
+  {
+    name: "Bullroarer",
+    description: "Spinning wooden blade swung on a cord, producing low whistling atmospheric roars.",
+    groups: ["African & Tribal Beats", "Percussion & Bells"]
+  },
+
+  // --- VOCAL STYLES ---
+  {
+    name: "Operatic Soprano",
+    description: "Classical sweeping vocal style representing dramatic, soaring female high ranges.",
+    groups: ["Vocal Cues & Styles"]
+  },
+  {
+    name: "Ethereal & Airy",
+    description: "Delicate, light, fairy-like and atmospheric vocal performance guidelines.",
+    groups: ["Vocal Cues & Styles"]
+  },
+  {
+    name: "Growling (Guttural)",
+    description: "Harsh, throaty vocal growl widely used in heavy metal and raw folk cues.",
+    groups: ["Vocal Cues & Styles"]
+  },
+  {
+    name: "Screaming & Screamo",
+    description: "Intense, high-pitched emotional vocal projection of extreme rock registers.",
+    groups: ["Vocal Cues & Styles"]
+  },
+  {
+    name: "Gregorian Chant Vocal",
+    description: "Unaccompanied monophonic spiritual chant mimicking ancient church acoustics.",
+    groups: ["Vocal Cues & Styles"]
+  },
+  {
+    name: "Mongolian Throat Vocal",
+    description: "Vocal manipulation of throat resonances producing dual overtone drones.",
+    groups: ["Vocal Cues & Styles", "Steppe & Mongolian"]
+  },
+  {
+    name: "Celt-Folk Lilting Mouth",
+    description: "Rhythmic Gaelic mouth-music of upbeat, syncopated vocalizations.",
+    groups: ["Vocal Cues & Styles"]
+  },
+  {
+    name: "Torch-Song Cabaret",
+    description: "Theatrical, heavy-hearted vocal style delivering dramatic narrative leaps.",
+    groups: ["Vocal Cues & Styles"]
+  },
+  {
+    name: "Sultry Jazz Coo",
+    description: "Very quiet, warm, and breathy low-register swing vocal styling.",
+    groups: ["Vocal Cues & Styles"]
+  },
+  {
+    name: "Spoken Word Poetics",
+    description: "Highly rhythmic spoken recitation delivered directly over ambient backing tracks.",
+    groups: ["Vocal Cues & Styles"]
+  },
+  {
+    name: "Vocal Fry Creak",
+    description: "Low gravelly creaky vocal delivery focusing on low register tones.",
+    groups: ["Vocal Cues & Styles"]
+  },
+
+  // --- BRASS STANDARDS ---
+  {
+    name: "Trumpet",
+    description: "High-pitched brilliant metal brass instrument with valve play.",
+    groups: ["Brass & Fanfare Horns"]
+  },
+  {
+    name: "Trombone",
+    description: "Lower register brass instrument using a sliding tube mechanism.",
+    groups: ["Brass & Fanfare Horns"]
+  },
+  {
+    name: "Tuba",
+    description: "Massive, extremely low-register foundational brass wind horn.",
+    groups: ["Brass & Fanfare Horns"]
+  },
+  {
+    name: "French Horn",
+    description: "Coiled circular conical valve horn of warm, mellow orchestral quality.",
+    groups: ["Brass & Fanfare Horns"]
+  },
+
+  // --- BOWED STRINGS STANDARDS ---
+  {
+    name: "Violin",
+    description: "High-pitched four-string bowed classical orchestral instrument.",
+    groups: ["Classical Bowed Strings"]
+  },
+  {
+    name: "Viola",
+    description: "Slightly larger, warmer, and deeper medium-register bowed string instrument.",
+    groups: ["Classical Bowed Strings"]
+  },
+  {
+    name: "Cello",
+    description: "Rich, soulful, highly resonant low-register bowed string giant.",
+    groups: ["Classical Bowed Strings"]
+  },
+  {
+    name: "Double Bass",
+    description: "Gigantic, deepest, and lowest orchestral bowed wooden string body.",
+    groups: ["Classical Bowed Strings"]
+  },
+
+  // --- ACOUSTIC STRINGS STANDARDS ---
+  {
+    name: "Acoustic Guitar",
+    description: "Rich resonance classical plucked string instrument with hollow body sound.",
+    groups: ["Acoustic Plucked Strings"]
+  },
+  {
+    name: "Lute",
+    description: "Plucked string instrument of Renaissance history with a rounded wooden body.",
+    groups: ["Acoustic Plucked Strings", "Ancient & Mythological"]
+  },
+  {
+    name: "Harp",
+    description: "Plucked multi-string frame instrument of ancient and orchestral prestige.",
+    groups: ["Acoustic Plucked Strings"]
+  },
+  {
+    name: "Mandolin",
+    description: "High-pitched doubled plucked string instrument of folk and bluegrass setups.",
+    groups: ["Acoustic Plucked Strings"]
+  },
+  {
+    name: "Banjo",
+    description: "Twangy plucked string instrument with a skin drum-like body.",
+    groups: ["Acoustic Plucked Strings"]
+  },
+  {
+    name: "Dulcimer",
+    description: "Zither-like folk strings beaten with tiny wooden mallets.",
+    groups: ["Acoustic Plucked Strings"]
+  },
+
+  // --- WOODWINDS STANDARDS ---
+  {
+    name: "Flute",
+    description: "Silver transverse orchestral woodwind creating bright, airy, clean tones.",
+    groups: ["Woodwinds & Free Reeds"]
+  },
+  {
+    name: "Oboe",
+    description: "Exquisite double-reed woodwind of intense, focused, and reedy character.",
+    groups: ["Woodwinds & Free Reeds"]
+  },
+  {
+    name: "Clarinet",
+    description: "Cylindrical woodwind with a rich, smooth, and extensive range.",
+    groups: ["Woodwinds & Free Reeds"]
+  },
+  {
+    name: "Bassoon",
+    description: "Deepest classical double-reed bass woodwind of rich, reedy woody hums.",
+    groups: ["Woodwinds & Free Reeds"]
+  },
+  {
+    name: "Accordion",
+    description: "Squeezebox free-reed keyboard instrument driven by manual air blowing bellows.",
+    groups: ["Woodwinds & Free Reeds"]
+  },
+
+  // --- DRUMS & SNARE STANDARDS ---
+  {
+    name: "Snare Drum",
+    description: "Loud, snapping drum utilizing bottom metal strands to create a rattling sound.",
+    groups: ["Drums & Deep Skins"]
+  },
+  {
+    name: "Bass Drum / Kick",
+    description: "Massive, deep booming low-end rhythmic foundation.",
+    groups: ["Drums & Deep Skins"]
+  },
+  {
+    name: "Timpani",
+    description: "Large copper orchestral bowls tuned to precise musical pitches.",
+    groups: ["Drums & Deep Skins"]
+  },
+
+  // --- PERCUSSION & METAL STANDARDS ---
+  {
+    name: "Tambourine",
+    description: "Handheld frame wood drum with high-ringing metal jingles.",
+    groups: ["Percussion & Bells"]
+  },
+  {
+    name: "Triangle",
+    description: "High ringing metal bar of great pitch clarity.",
+    groups: ["Percussion & Bells"]
+  },
+  {
+    name: "Wind Chimes",
+    description: "Delicate wind-blown hanging metal rods of high shimmer.",
+    groups: ["Percussion & Bells"]
+  },
+  {
+    name: "Glockenspiel",
+    description: "Set of tuned metallic bars played with hard mallets.",
+    groups: ["Percussion & Bells"]
+  },
+  {
+    name: "Cymbals",
+    description: "Crashing or riding round thin metal plates.",
+    groups: ["Percussion & Bells"]
+  },
+  {
+    name: "Castanets",
+    description: "Clicking wooden rhythmic shells held in the fingers.",
+    groups: ["Percussion & Bells"]
+  },
+  {
+    name: "Cowbell",
+    description: "Clunky rustic hollow metal percussion vessel.",
+    groups: ["Percussion & Bells"]
+  },
+  {
+    name: "Glass Harmonica",
+    description: "Atmospheric rubbing friction-played spinning glass bowls.",
+    groups: ["Percussion & Bells", "Ancient & Mythological"]
+  },
+
+  // --- ELECTRONIC & MODERN ---
+  {
+    name: "Electric Guitar",
+    description: "Solid-body guitar needing electronic amplification for infinite rock expression.",
+    groups: ["Modern Electronic & Synths"]
+  },
+  {
+    name: "Bass Guitar",
+    description: "Heavy, long-profile low-register electronic four-to-six string guitar.",
+    groups: ["Modern Electronic & Synths"]
+  },
+  {
+    name: "Synthesizer",
+    description: "Universal electronic keyboard generating synthetic sound wave oscillators.",
+    groups: ["Modern Electronic & Synths"]
+  },
+  {
+    name: "Drum Machine",
+    description: "Electronic beat controller compiling programmable computer drum triggers.",
+    groups: ["Modern Electronic & Synths"]
+  },
+  {
+    name: "Keytar",
+    description: "Synthesizer outfitted with a leather guitar strap and vertical key interface.",
+    groups: ["Modern Electronic & Synths"]
+  },
+  {
+    name: "Theremin",
+    description: "Early contactless synth played by waving hands near electromagnetic antennas.",
+    groups: ["Modern Electronic & Synths"]
+  },
+  {
+    name: "Mellotron",
+    description: "Retro keyboard compiling tape loop playbacks of acoustic flutes or choral textures.",
+    groups: ["Modern Electronic & Synths"]
   }
 ];
+
+// Dynamically extract all unique group names across instruments and sort alphabetically
+const groupsSet = new Set<string>();
+ALL_INSTRUMENTS.forEach(inst => {
+  inst.groups.forEach(g => groupsSet.add(g));
+});
+
+export const INSTRUMENT_GROUPS_LIST = Array.from(groupsSet).sort();
+
+// Reconstruct the nested array structure expected by the Band Instruments selectors
+export const INSTRUMENTS = INSTRUMENT_GROUPS_LIST.map(groupName => {
+  const matching = ALL_INSTRUMENTS.filter(inst => inst.groups.includes(groupName));
+  return {
+    type: groupName,
+    instruments: matching.map(inst => ({
+      name: inst.name,
+      description: inst.description
+    }))
+  };
+});
+
+// Reconstruct a flat structured array for Single Singer Solo views
+export const SINGLE_SINGER_INSTRUMENTS = ALL_INSTRUMENTS.map(inst => ({
+  name: inst.name,
+  description: inst.description,
+  // Fallback map to preserve direct .group checks if needed (or we check groups directly)
+  group: inst.groups[0] || "Acoustic Plucked Strings",
+  groups: inst.groups
+}));

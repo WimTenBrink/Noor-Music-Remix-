@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Dialog } from './Dialog';
 import { Job } from '../../types';
 import { AlertCircle, Copy, Check, Info, RefreshCw, HelpCircle } from 'lucide-react';
+import { useJobQueue } from '../hooks/useJobQueue';
 
 interface DoubleFailedDialogProps {
   job: Job | null;
@@ -9,9 +10,16 @@ interface DoubleFailedDialogProps {
 }
 
 export const DoubleFailedDialog: React.FC<DoubleFailedDialogProps> = ({ job, onClose }) => {
+  const { retryAll } = useJobQueue();
   const [copied, setCopied] = useState(false);
 
   if (!job) return null;
+
+  const handleRetryAll = () => {
+    const token = localStorage.getItem('noor-api-key') || '';
+    retryAll(token);
+    onClose();
+  };
 
   const handleCopyError = () => {
     navigator.clipboard.writeText(JSON.stringify({
@@ -134,6 +142,17 @@ export const DoubleFailedDialog: React.FC<DoubleFailedDialogProps> = ({ job, onC
                 ))}
               </ul>
             </div>
+          </div>
+
+          {/* Action Row */}
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              onClick={handleRetryAll}
+              className="px-5 py-2.5 bg-green-500 hover:bg-green-600 text-black font-extrabold rounded-xl flex items-center gap-2 transition-all cursor-pointer text-sm shadow-md shadow-green-950/20"
+            >
+              <RefreshCw size={14} className="animate-spin-slow" />
+              Retry Failed Jobs
+            </button>
           </div>
         </div>
       </div>

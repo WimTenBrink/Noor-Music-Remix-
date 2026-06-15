@@ -6,11 +6,20 @@
   --color-lavender-border: #2a2a3a;
   --color-lavender-text: #e0e0f0;
   --color-lavender-accent: #a080ff;
+
+  --font-size-xs: 14px;
+  --font-size-sm: 16px;
+  --font-size-base: 19px;
+  --font-size-lg: 22px;
+  --font-size-xl: 26px;
+  --font-size-2xl: 30px;
+  --font-size-3xl: 36px;
+  --font-size-4xl: 42px;
 }
 
 @layer base {
   body {
-    @apply bg-lavender-bg text-lavender-text text-[18px];
+    @apply bg-lavender-bg text-lavender-text text-base;
   }
 }
 
@@ -24,7 +33,7 @@
 .markdown-body {
   color: var(--color-lavender-text);
   line-height: 1.6;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
 }
 
 .markdown-body h1 { @apply text-3xl font-bold mb-6 text-lavender-accent border-b border-lavender-border pb-2; }

@@ -43,7 +43,8 @@ export const MainPanel: React.FC<MainPanelProps> = ({ song, onChange, onDropFile
   };
 
   const handleChange = (field: keyof Song, value: string) => {
-    onChange({ ...song, [field]: value });
+    const finalValue = field === 'lyrics' ? value.substring(0, 5000) : value;
+    onChange({ ...song, [field]: finalValue });
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -147,6 +148,7 @@ export const MainPanel: React.FC<MainPanelProps> = ({ song, onChange, onDropFile
           placeholder="[Verse 1]\n[Miranda]\nIn the quiet of the morning..." 
           rows={15}
           value={song.lyrics}
+          maxLength={5000}
           onChange={(e) => handleChange('lyrics', e.target.value)}
         />
       </div>

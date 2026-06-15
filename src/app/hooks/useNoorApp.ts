@@ -9,29 +9,75 @@ import {
   GENERATE_LYRICS_PROMPT, 
   GENERATE_INTERVIEW_PROMPT, 
   GENERATE_STORY_AND_IMAGE_PROMPTS_PROMPT, 
-  GENERATE_PORTRAITS_PROMPT 
+  GENERATE_PORTRAITS_PROMPT,
+  GENERATE_TRANSLATION_PROMPT,
+  GENERATE_ENTENDRES_PROMPT,
+  GENERATE_TECHNICAL_PROMPT,
+  GENERATE_INTERVIEW_REVIEW_PROMPT,
+  GENERATE_ANALYSIS_PROMPT,
+  GENERATE_STORY_BEHIND_SONG_PROMPT,
+  GENERATE_COMPARE_PROMPT
 } from '../../constants/prompts';
 import { 
   SYSTEM_INSTRUCTIONS, 
   SYSTEM_INSTRUCTIONS_LYRICS, 
   SYSTEM_INSTRUCTIONS_INTERVIEW, 
   SYSTEM_INSTRUCTIONS_STORY_AND_IMAGES, 
-  SYSTEM_INSTRUCTIONS_PORTRAITS 
+  SYSTEM_INSTRUCTIONS_PORTRAITS,
+  SYSTEM_INSTRUCTIONS_TRANSLATION,
+  SYSTEM_INSTRUCTIONS_ENTENDRES,
+  SYSTEM_INSTRUCTIONS_TECHNICAL,
+  SYSTEM_INSTRUCTIONS_INTERVIEW_REVIEW,
+  SYSTEM_INSTRUCTIONS_ANALYSIS,
+  SYSTEM_INSTRUCTIONS_STORY_BEHIND_SONG,
+  SYSTEM_INSTRUCTIONS_COMPARE,
+  getSystemInstructionsStoryAndImages,
+  getSystemInstructionsPortraits
 } from '../../constants/instructions';
 import { SINGERS } from '../../constants/singers';
 import { THE_BAND_MD } from '../../constants/the_band';
 import { SYSTEM_INSTRUCTIONS_MD, MANUAL_MD, CODE_OVERVIEW_MD } from '../../constants/help';
 import { findDialectById } from '../utils/languages';
+import { findNationalityById } from '../utils/nationalities';
 import { getInnuendoStep } from '../utils/innuendoLevels';
 import { getEpicStep } from '../utils/epicLevels';
 import { getSillyStep } from '../utils/sillyLevels';
 import { getSapphicStep, SAPPHIC_STEPS } from '../utils/sapphicLevels';
+import { getWildnessStep, WILDNESS_STEPS } from '../utils/wildnessLevels';
 import { findRhymeTypeById } from '../utils/rhymes';
-import { reverseLyrics } from '../utils/lyricsParser';
+import { reverseLyrics, getCleanFormattedLyrics } from '../utils/lyricsParser';
 import { findKeyByIndex, findKeyIndexByName, findTimeSignatureByFraction, TIME_SIGNATURES, MUSICAL_KEYS, getTempoName } from '../utils/musicParams';
+
+const INTENT_ENERGY_GROUPS_LOOKUP: Record<string, { name: string; examples: string; description: string; category: string; umbrella: string }> = {
+  club_electronic: { name: 'Club & Electronic', examples: 'House, Techno, Trance, Drum & Bass', description: 'Upbeat, repetitive, synthesised tempos.', category: 'High Energy & Movement', umbrella: "The 'Dance' Umbrella" },
+  urban_street: { name: 'Urban & Street', examples: 'Hip-Hop, Trap, Reggaeton, Dancehall', description: 'Heavy bass, rhythmic delivery, lyrical.', category: 'High Energy & Movement', umbrella: "The 'Dance' Umbrella" },
+  retro_dance: { name: 'Retro Dance', examples: 'Disco, Funk, Synthwave', description: 'Groovy, nostalgic, organic basslines.', category: 'High Energy & Movement', umbrella: "The 'Dance' Umbrella" },
+  rock_heavy_beats: { name: 'Rock & Heavy Beats', examples: 'Hard Rock, Punk Rock, Synth Metal', description: 'Aggressive tempo, high distortion, powerful drum beats.', category: 'High Energy & Movement', umbrella: "The 'Dance' Umbrella" },
+  festive_carnival: { name: 'Festive & Carnival', examples: 'Samba, Soca, Eurodance', description: 'Polyrhythmic, highly celebratory, syncopated rhythms.', category: 'High Energy & Movement', umbrella: "The 'Dance' Umbrella" },
+
+  minimalist_ambient: { name: 'Minimalist Ambient', examples: 'Lo-Fi Beats, Chillhop, Ambient Drone', description: 'Predictable rhythms, cozy, comforting vibe.', category: 'Focus & Productivity', umbrella: "The 'Brain' Umbrella" },
+  acoustic_focus: { name: 'Acoustic Focus', examples: 'Classical Piano, Fingerstyle Guitar, Neo-Classical', description: 'Organic, intellectual, stimulating without being distracting.', category: 'Focus & Productivity', umbrella: "The 'Brain' Umbrella" },
+  neuro_music: { name: 'Neuro-Music', examples: 'Binaural beats, Synth Drones, White/Brown Noise', description: 'Scientific, deeply repetitive for deep-work states.', category: 'Focus & Productivity', umbrella: "The 'Brain' Umbrella" },
+  nature_blend: { name: 'Nature Blend', examples: 'Rain on Tents, Forest Birds with Soft Chords', description: 'Natural field recordings mixed with harmonic backings.', category: 'Focus & Productivity', umbrella: "The 'Brain' Umbrella" },
+  symphonic_focus: { name: 'Symphonic Focus', examples: 'Baroque Harpsichord, Renaissance Lute', description: 'Highly structured, mathematical, memory-enhancing patterns.', category: 'Focus & Productivity', umbrella: "The 'Brain' Umbrella" },
+
+  cinematic_atmospheric: { name: 'Cinematic & Atmospheric', examples: 'Post-Rock, Ambient Textures, Dream Pop', description: 'Spacious, slow-building, emotional soundscapes.', category: 'Relaxation & Wind-Down', umbrella: "The 'Chill' Umbrella" },
+  organic_chill: { name: 'Organic Chill', examples: 'Acoustic Folk, Bossa Nova, Smooth Jazz', description: 'Warm, breezy, easy-listening melodies.', category: 'Relaxation & Wind-Down', umbrella: "The 'Chill' Umbrella" },
+  meditation_wellness: { name: 'Meditation & Wellness', examples: 'Tibetan bowls, Nature Soundscapes, New Age', description: 'Purely sonic texture with no defined tempo.', category: 'Relaxation & Wind-Down', umbrella: "The 'Chill' Umbrella" },
+  spiritual_chant: { name: 'Spiritual & Chant', examples: 'Gregorian Chants, Sanskrit Mantras, Drone Chords', description: 'Resonant, ancient, sacred, slowing respiratory rate.', category: 'Relaxation & Wind-Down', umbrella: "The 'Chill' Umbrella" },
+  lullaby_slumber: { name: 'Lullaby & Slumber', examples: 'Music Box, Celeste, Soft Harp Lullabies', description: 'Extremely quiet, slow tempo, high-frequency gentle tones.', category: 'Relaxation & Wind-Down', umbrella: "The 'Chill' Umbrella" },
+
+  raw_angsty: { name: 'Raw & Angsty', examples: 'Grunge, Indie Rock, Alternative, Punk', description: 'Guitars, raw vocals, high emotional friction.', category: 'Emotional & Narrative', umbrella: "The 'Feelings' Umbrella" },
+  soulful_roots: { name: 'Soulful & Roots', examples: 'Blues, Soul, Gospel, Traditional Country', description: 'Expressive vocals, organic instruments, heritage-driven melodies.', category: 'Emotional & Narrative', umbrella: "The 'Feelings' Umbrella" },
+  epic_dramatic: { name: 'Epic & Dramatic', examples: 'Orchestral Film Score, Dark Synth, Symphonic Metal', description: 'Grand, cinematic, storytelling without words.', category: 'Emotional & Narrative', umbrella: "The 'Feelings' Umbrella" },
+  nostalgic_bittersweet: { name: 'Nostalgic & Bitter-Sweet', examples: 'French Chanson, Chamber Pop, Acoustic Ballad', description: 'Reflective, melancholic, narrative-oriented.', category: 'Emotional & Narrative', umbrella: "The 'Feelings' Umbrella" },
+  cinematic_scifi: { name: 'Cinematic Sci-Fi', examples: 'Vangelis-style Synths, Slow Horn Swells', description: 'Awe-inspiring, space-ambient cosmic journey.', category: 'Emotional & Narrative', umbrella: "The 'Feelings' Umbrella" }
+};
 
 function getDialectStyleRules(id: string): string {
   switch (id) {
+    case 'mn-MN':
+      return "Mongolian (Mongol Khele). You MUST compose these lyrics and singer performance instructions beautifully in Mongolian (using Cyrillic-based words, or phonetic Mongolian transcripts), featuring highly energetic guttural phonetics. Since this is in the style of 'The HU' with female vocals, incorporate explicit vocal tags for throat-singing (e.g., [Khoomei throat-singing dual overtones], [Kargyraa deep guttural chest drone], [Sygyt whistling harmonics], [Soaring female Urtiin Duu long-song ornament]). The lyrical themes must paint majestic nomadic storytelling of the wind-swept Mongolian steppes, galloping wild stallions, golden eagles, skies, and fire spirits.";
     case 'dra-MY':
       return "Draconian. This is a fictional language. You MUST compose these lyrics/parts entirely in English, but heavily style them with a mythical Draconian/Dragon thematic tone: use guttural, roaring, and powerful draconic phonetics, ancient runes imagery, and powerful dragon shout dynamics (e.g., [Draconic Shout vocal delivery]).";
     case 'dem-MY':
@@ -198,6 +244,10 @@ function downloadParametersMarkdown(songTitle: string, settings: any) {
       const step = getSapphicStep(settings.sapphicLevel);
       slidersSection += `- **Sapphic/Lesbian Meter Level ${step.level}:** "${step.label}" — *${step.description}*\n`;
     }
+    if (enabledTabs.wildnessLevel && settings.wildnessLevel !== undefined) {
+      const step = getWildnessStep(settings.wildnessLevel);
+      slidersSection += `- **Wildness/Chaos Level ${step.level}:** "${step.label}" — *${step.description}*\n`;
+    }
     if (slidersSection) {
       mdContent += `## Lyric Mood & Drama Scales\n${slidersSection}\n`;
     }
@@ -305,6 +355,59 @@ function downloadParametersMarkdown(songTitle: string, settings: any) {
   }
 }
 
+function downloadDetailsMarkdown(title: string, style: string, lyrics: string) {
+  try {
+    let mdContent = `# Output Song Reference: ${title}\n\n`;
+    mdContent += `## Music Style & Instrumentation\n${style || 'No style details specified'}\n\n`;
+    mdContent += `## Lyrical Composition\n\n${lyrics || 'No lyrics composed yet.'}\n`;
+    
+    const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeTitle = title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'untitled';
+    a.href = url;
+    a.download = `${safeTitle}-details.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Failed to download details markdown file:', err);
+  }
+}
+
+function downloadKaraokeMarkdown(title: string, lyrics: string) {
+  try {
+    const cleanLyrics = getCleanFormattedLyrics(lyrics);
+    let mdContent = `# Karaoke Lyrics: ${title}\n\n`;
+    mdContent += `${cleanLyrics || 'No lyrics composed yet.'}\n`;
+    
+    const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeTitle = title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'untitled';
+    a.href = url;
+    a.download = `${safeTitle}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Failed to download karaoke markdown file:', err);
+  }
+}
+
+function downloadCustomMarkdown(title: string, suffix: string, markdown: string) {
+  try {
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeTitle = title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'untitled';
+    a.href = url;
+    a.download = `${safeTitle}-${suffix}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error(`Failed to download ${suffix} markdown file:`, err);
+  }
+}
+
 export function useNoorApp() {
   const [song, setSong] = useState<Song>(() => {
     const saved = localStorage.getItem('noor-song');
@@ -360,6 +463,12 @@ export function useNoorApp() {
   const [showWardrobe, setShowWardrobe] = useState(false);
   const [showCulinary, setShowCulinary] = useState(false);
   const [showFarm, setShowFarm] = useState(false);
+
+  const [isMp3Matched, setIsMp3Matched] = useState(false);
+
+  useEffect(() => {
+    setIsMp3Matched(false);
+  }, [song.title]);
 
   const [activePortraitType, setActivePortraitType] = useState<PortraitType>('Face');
   const [portraitPrompts, setPortraitPrompts] = useState<Record<PortraitType, PortraitPrompts>>(() => {
@@ -420,6 +529,15 @@ export function useNoorApp() {
   useEffect(() => {
     localStorage.setItem('noor-sapphic-level', sapphicLevel.toString());
   }, [sapphicLevel]);
+
+  const [wildnessLevel, setWildnessLevel] = useState<number>(() => {
+    const saved = localStorage.getItem('noor-wildness-level');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('noor-wildness-level', wildnessLevel.toString());
+  }, [wildnessLevel]);
 
   const [rhymeId, setRhymeId] = useState<string>(() => {
     return localStorage.getItem('noor-rhyme-id') || 'perfect';
@@ -508,6 +626,15 @@ export function useNoorApp() {
   useEffect(() => {
     localStorage.setItem('noor-singer-partner-ups', JSON.stringify(singerPartnerUps));
   }, [singerPartnerUps]);
+
+  const [singerNationalities, setSingerNationalities] = useState<Record<string, string>>(() => {
+    const saved = localStorage.getItem('noor-singer-nationalities');
+    return saved ? JSON.parse(saved) : { miranda: '', annelies: '', fannie: '', emma: '' };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('noor-singer-nationalities', JSON.stringify(singerNationalities));
+  }, [singerNationalities]);
 
   const [selfReflect, setSelfReflect] = useState<boolean>(() => {
     const saved = localStorage.getItem('noor-self-reflect');
@@ -665,7 +792,7 @@ export function useNoorApp() {
   }, []);
 
   const { addJob, jobs, clearQueue } = useJobQueue();
-  const { log } = useLogs();
+  const { log, clear: clearLogs } = useLogs();
 
   const [doubleFailedAlerts, setDoubleFailedAlerts] = useState<Set<string>>(() => {
     try {
@@ -732,6 +859,7 @@ export function useNoorApp() {
     targetRhymeId?: string,
     targetSillyLevel?: number,
     targetSapphicLevel?: number,
+    targetWildnessLevel?: number,
     targetMusicalKey?: string,
     targetBpm?: number,
     targetTimeSignature?: string,
@@ -740,7 +868,12 @@ export function useNoorApp() {
     targetSingerPrompts?: Record<string, string>,
     targetSingerInstruments?: Record<string, string[]>,
     targetSingerPartnerUps?: Record<string, boolean>,
-    targetEnabledTabs?: Record<string, boolean>
+    targetSingerNationalities?: Record<string, string>,
+    targetSuggestedTitle?: string,
+    targetEnabledTabs?: Record<string, boolean>,
+    targetExactTitle?: boolean,
+    targetIntentEnergy?: string[],
+    targetImageDescription?: string
   ) => {
     const activeEnabledTabs = targetEnabledTabs || {};
 
@@ -749,6 +882,8 @@ export function useNoorApp() {
     if (activeEnabledTabs.accent) {
       resolvedDialectId = targetDialectId !== undefined ? targetDialectId : selectedDialectId;
     }
+
+    const resolvedSingerNationalities = targetSingerNationalities !== undefined ? targetSingerNationalities : singerNationalities;
 
     // 2. Instruments Default and Override Rules
     const instrumentsActive = activeEnabledTabs.instruments;
@@ -763,14 +898,47 @@ export function useNoorApp() {
     };
 
     if (!instrumentsActive && !soloInstrumentsActive) {
-      // Default instruments: bagpipes (Miranda, Emma) and Crwth (Annelies, Fannie)
-      resolvedInstruments = ['bagpipes', 'crwth'];
-      resolvedSingerInstruments = {
-        miranda: ['bagpipes'],
-        emma: ['bagpipes'],
-        annelies: ['crwth'],
-        fannie: ['crwth']
-      };
+      const hasAnyNationality = Object.values(resolvedSingerNationalities).some(val => !!val);
+      if (hasAnyNationality) {
+        resolvedSingerInstruments = {
+          miranda: [],
+          annelies: [],
+          fannie: [],
+          emma: []
+        };
+        const uniqueSolo = new Set<string>();
+        Object.entries(resolvedSingerNationalities).forEach(([singerId, natId]) => {
+          if (natId) {
+            const nat = findNationalityById(natId);
+            if (nat && nat.defaultInstruments) {
+              resolvedSingerInstruments[singerId] = [...nat.defaultInstruments];
+              nat.defaultInstruments.forEach(inst => uniqueSolo.add(inst));
+            }
+          }
+        });
+
+        // Fill empty singers with default traditional instruments as fallback
+        if (resolvedSingerInstruments.miranda.length === 0) resolvedSingerInstruments.miranda = ['bagpipes'];
+        if (resolvedSingerInstruments.emma.length === 0) resolvedSingerInstruments.emma = ['bagpipes'];
+        if (resolvedSingerInstruments.annelies.length === 0) resolvedSingerInstruments.annelies = ['crwth'];
+        if (resolvedSingerInstruments.fannie.length === 0) resolvedSingerInstruments.fannie = ['crwth'];
+
+        resolvedSingerInstruments.miranda.forEach(i => uniqueSolo.add(i));
+        resolvedSingerInstruments.emma.forEach(i => uniqueSolo.add(i));
+        resolvedSingerInstruments.annelies.forEach(i => uniqueSolo.add(i));
+        resolvedSingerInstruments.fannie.forEach(i => uniqueSolo.add(i));
+
+        resolvedInstruments = Array.from(uniqueSolo);
+      } else {
+        // Default instruments: bagpipes (Miranda, Emma) and Crwth (Annelies, Fannie)
+        resolvedInstruments = ['bagpipes', 'crwth'];
+        resolvedSingerInstruments = {
+          miranda: ['bagpipes'],
+          emma: ['bagpipes'],
+          annelies: ['crwth'],
+          fannie: ['crwth']
+        };
+      }
     } else if (soloInstrumentsActive) {
       // Solo instruments replace defaults
       resolvedSingerInstruments = targetSingerInstruments !== undefined ? targetSingerInstruments : singerInstruments;
@@ -797,6 +965,7 @@ export function useNoorApp() {
     const resolvedRhymeId = activeEnabledTabs.rhymeScheme ? (targetRhymeId !== undefined ? targetRhymeId : rhymeId) : '';
     const resolvedSillyLevel = activeEnabledTabs.sillyLevel ? (targetSillyLevel !== undefined ? targetSillyLevel : sillyLevel) : undefined;
     const resolvedSapphicLevel = activeEnabledTabs.sapphicLevel ? (targetSapphicLevel !== undefined ? targetSapphicLevel : sapphicLevel) : undefined;
+    const resolvedWildnessLevel = activeEnabledTabs.wildnessLevel ? (targetWildnessLevel !== undefined ? targetWildnessLevel : wildnessLevel) : undefined;
     const resolvedMusicalKey = activeEnabledTabs.musicalKey ? (targetMusicalKey !== undefined ? targetMusicalKey : musicalKey) : '';
     const resolvedBpm = activeEnabledTabs.beatsPerMinute ? (targetBpm !== undefined ? targetBpm : bpm) : undefined;
     const resolvedTimeSignature = activeEnabledTabs.timeSignature ? (targetTimeSignature !== undefined ? targetTimeSignature : timeSignature) : '';
@@ -851,6 +1020,9 @@ export function useNoorApp() {
     if (activeEnabledTabs.sapphicLevel && targetSapphicLevel !== undefined) {
       setSapphicLevel(targetSapphicLevel);
     }
+    if (activeEnabledTabs.wildnessLevel && targetWildnessLevel !== undefined) {
+      setWildnessLevel(targetWildnessLevel);
+    }
     if (activeEnabledTabs.musicalKey && targetMusicalKey !== undefined) {
       setMusicalKey(targetMusicalKey);
     }
@@ -871,6 +1043,9 @@ export function useNoorApp() {
     }
     if (activeEnabledTabs.partnerUp && targetSingerPartnerUps !== undefined) {
       setSingerPartnerUps(targetSingerPartnerUps);
+    }
+    if (targetSingerNationalities !== undefined) {
+      setSingerNationalities(targetSingerNationalities);
     }
     if (activeEnabledTabs.timeSignature && targetTimeSignature !== undefined) {
       setTimeSignature(targetTimeSignature);
@@ -893,11 +1068,53 @@ Below are the specific styling and composition guidelines for each selected lang
 ${dialectIds.map((id, index) => `${index + 1}. [${findDialectById(id)?.name || id}]: ${getDialectStyleRules(id)}`).join('\n')}`;
     }
 
+    let singerNationalitiesText = '';
+    const activeNationalitiesList = Object.entries(resolvedSingerNationalities)
+      .filter(([_, val]) => !!val)
+      .map(([singerId, val]) => {
+        const nat = findNationalityById(val);
+        const nameCapitalized = singerId.charAt(0).toUpperCase() + singerId.slice(1);
+        if (nat) {
+          return `- **${nameCapitalized}** has the **${nat.name}** national culture/identity.
+  * Vocal Accent & Expression Impact: ${nat.accentImpact}
+  * Instrumental Performance Style: ${nat.instrumentImpact}`;
+        }
+        return '';
+      })
+      .filter(Boolean);
+
+    if (activeNationalitiesList.length > 0) {
+      singerNationalitiesText = activeNationalitiesList.join('\n');
+    }
+
+    let intentEnergyText = '';
+    if (activeEnabledTabs.intentEnergy && targetIntentEnergy && targetIntentEnergy.length > 0) {
+      const selectedSpecs = targetIntentEnergy
+        .map(id => INTENT_ENERGY_GROUPS_LOOKUP[id])
+        .filter(Boolean);
+      
+      if (selectedSpecs.length > 0) {
+        const groupedMap: Record<string, string[]> = {};
+        selectedSpecs.forEach(spec => {
+          const key = `${spec.category} (${spec.umbrella})`;
+          if (!groupedMap[key]) {
+            groupedMap[key] = [];
+          }
+          groupedMap[key].push(`- **${spec.name}** (${spec.examples}): ${spec.description}`);
+        });
+
+        intentEnergyText = Object.entries(groupedMap)
+          .map(([groupHeader, items]) => `### ${groupHeader}\n${items.join('\n')}`)
+          .join('\n\n');
+      }
+    }
+
     const innuendoText = resolvedInnuendoLevel !== undefined ? `${getInnuendoStep(resolvedInnuendoLevel).level}. ${getInnuendoStep(resolvedInnuendoLevel).label} - ${getInnuendoStep(resolvedInnuendoLevel).description}` : '';
     const epicText = resolvedEpicLevel !== undefined ? `${getEpicStep(resolvedEpicLevel).level}. ${getEpicStep(resolvedEpicLevel).label} - ${getEpicStep(resolvedEpicLevel).description}` : '';
     const rhymeText = resolvedRhymeId ? `${findRhymeTypeById(resolvedRhymeId)?.name}: ${findRhymeTypeById(resolvedRhymeId)?.description}` : '';
     const sillyText = resolvedSillyLevel !== undefined ? `${getSillyStep(resolvedSillyLevel).level}. ${getSillyStep(resolvedSillyLevel).label} - ${getSillyStep(resolvedSillyLevel).description}` : '';
     const sapphicText = resolvedSapphicLevel !== undefined ? `${getSapphicStep(resolvedSapphicLevel).level}. ${getSapphicStep(resolvedSapphicLevel).label} - ${getSapphicStep(resolvedSapphicLevel).description}` : '';
+    const wildnessText = resolvedWildnessLevel !== undefined ? `${getWildnessStep(resolvedWildnessLevel).level}. ${getWildnessStep(resolvedWildnessLevel).label} - ${getWildnessStep(resolvedWildnessLevel).description}` : '';
 
     const prompt = GENERATE_LYRICS_PROMPT(
       instructions, 
@@ -919,7 +1136,12 @@ ${dialectIds.map((id, index) => `${index + 1}. [${findDialectById(id)?.name || i
       resolvedMusicalKey,
       resolvedBpm,
       resolvedTimeSignature,
-      sapphicText
+      sapphicText,
+      singerNationalitiesText,
+      wildnessText,
+      targetSuggestedTitle,
+      targetExactTitle,
+      intentEnergyText
     );
 
     const generationSettings = {
@@ -939,6 +1161,7 @@ ${dialectIds.map((id, index) => `${index + 1}. [${findDialectById(id)?.name || i
       rhymeId: resolvedRhymeId,
       sillyLevel: resolvedSillyLevel,
       sapphicLevel: resolvedSapphicLevel,
+      wildnessLevel: resolvedWildnessLevel,
       musicalKey: resolvedMusicalKey,
       bpm: resolvedBpm,
       timeSignature: resolvedTimeSignature,
@@ -947,7 +1170,12 @@ ${dialectIds.map((id, index) => `${index + 1}. [${findDialectById(id)?.name || i
       singerPrompts: resolvedSingerPrompts,
       singerInstruments: resolvedSingerInstruments,
       singerPartnerUps: resolvedSingerPartnerUps,
-      enabledTabs: activeEnabledTabs
+      singerNationalities: resolvedSingerNationalities,
+      suggestedTitle: targetSuggestedTitle || '',
+      exactTitle: targetExactTitle || false,
+      intentEnergy: targetIntentEnergy || [],
+      enabledTabs: activeEnabledTabs,
+      imageDescription: targetImageDescription || ''
     };
 
     let customSystemInstructions = SYSTEM_INSTRUCTIONS_LYRICS;
@@ -1302,6 +1530,9 @@ Under no circumstances should the lyrics end abruptly after a chorus, verse, or 
 
   const loadSongAndSettings = (parsedContent: any): boolean => {
     if (typeof parsedContent === 'object' && parsedContent !== null && ('lyrics' in parsedContent || 'title' in parsedContent)) {
+      if (parsedContent.lyrics && typeof parsedContent.lyrics === 'string' && parsedContent.lyrics.length > 5000) {
+        parsedContent.lyrics = parsedContent.lyrics.substring(0, 5000);
+      }
       setSong(parsedContent);
       
       const s = parsedContent.settings;
@@ -1314,6 +1545,7 @@ Under no circumstances should the lyrics end abruptly after a chorus, verse, or 
         if (typeof s.epicLevel === 'number') setEpicLevel(s.epicLevel);
         if (typeof s.sillyLevel === 'number') setSillyLevel(s.sillyLevel);
         if (typeof s.sapphicLevel === 'number') setSapphicLevel(s.sapphicLevel);
+        if (typeof s.wildnessLevel === 'number') setWildnessLevel(s.wildnessLevel);
         if (typeof s.rhymeId === 'string') setRhymeId(s.rhymeId);
         if (typeof s.musicalKey === 'string') setMusicalKey(s.musicalKey);
         if (typeof s.bpm === 'number') setBpm(s.bpm);
@@ -1324,6 +1556,7 @@ Under no circumstances should the lyrics end abruptly after a chorus, verse, or 
         if (s.singerPrompts) setSingerPrompts(s.singerPrompts);
         if (s.singerInstruments) setSingerInstruments(s.singerInstruments);
         if (s.singerPartnerUps) setSingerPartnerUps(s.singerPartnerUps);
+        if (s.singerNationalities) setSingerNationalities(s.singerNationalities);
         if (typeof s.selfReflect === 'boolean') setSelfReflect(s.selfReflect);
         if (typeof s.reverseLyricsEnabled === 'boolean') setReverseLyricsEnabled(s.reverseLyricsEnabled);
         if (Array.isArray(s.selectedSoundEffects)) setSelectedSoundEffects(s.selectedSoundEffects);
@@ -1371,6 +1604,114 @@ Under no circumstances should the lyrics end abruptly after a chorus, verse, or 
     };
     if (file.type.startsWith('image/')) reader.readAsDataURL(file);
     else reader.readAsText(file);
+  };
+
+  const handleDropMp3 = (file: File) => {
+    if (!song || !song.title) {
+      log('error', 'No Song Active', 'Please generate or load a song first before dropping an MP3.');
+      return;
+    }
+    
+    if (!file.name.toLowerCase().endsWith('.mp3')) {
+      log('error', 'Invalid File Type', `File "${file.name}" is not an MP3 audio file.`);
+      return;
+    }
+
+    const cleanTitle = song.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanFileName = file.name.toLowerCase().replace(/\.mp3$/, '').replace(/[^a-z0-9]/g, '');
+    
+    const isPrefixOrSuffix = cleanFileName.includes(cleanTitle) || cleanTitle.includes(cleanFileName);
+    const titleWords = song.title.toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 2);
+    const areWordsInName = titleWords.length > 0 && titleWords.every(word => file.name.toLowerCase().includes(word));
+    const isMatched = isPrefixOrSuffix || areWordsInName || file.name.toLowerCase() === 'song.mp3' || file.name.toLowerCase() === 'audio.mp3';
+
+    if (isMatched) {
+      setIsMp3Matched(true);
+
+      // Check for same-song comparison trigger
+      const saved = localStorage.getItem('noor-uploaded-mp3s-v4') || '[]';
+      let uploaded: any[] = [];
+      try {
+        uploaded = JSON.parse(saved);
+      } catch {
+        uploaded = [];
+      }
+
+      const otherMatched = uploaded.filter((f: any) => {
+        // Simple matching logic
+        const cTitle = song.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cFileName = f.name.toLowerCase().replace(/\.mp3$/, '').replace(/[^a-z0-9]/g, '');
+        const isPrefSuff = cFileName.includes(cTitle) || cTitle.includes(cFileName);
+        const tWords = song.title.toLowerCase().split(/[^a-z0-9]+/).filter((w: string) => w.length > 2);
+        const wordsInN = tWords.length > 0 && tWords.every((word: string) => f.name.toLowerCase().includes(word));
+        const matched = isPrefSuff || wordsInN || f.name.toLowerCase() === 'song.mp3' || f.name.toLowerCase() === 'audio.mp3';
+        return matched && f.name !== file.name;
+      });
+
+      if (otherMatched.length > 0) {
+        // Secondary matched file: only trigger comparison with the Lead Song
+        const leadFile = otherMatched[otherMatched.length - 1];
+        log('info', 'Comparison Scheduled', `MP3 comparison triggered! Comparing newly added "${file.name}" against lead song audio "${leadFile.name}".`);
+
+        const comparePrompt = GENERATE_COMPARE_PROMPT(
+          song.title,
+          song.lyrics,
+          song.style,
+          leadFile,
+          { name: file.name, size: file.size }
+        );
+
+        addJob(
+          `Compare Versions: ${song.title}`,
+          'high',
+          comparePrompt,
+          apiKey || '',
+          {},
+          SYSTEM_INSTRUCTIONS_COMPARE
+        );
+      } else {
+        // First matched file: run all four main diagnostics
+        log('info', 'Sound File Matched', `MP3 file "${file.name}" successfully matched song "${song.title}". Initializing four custom Karaoke report jobs.`);
+
+        addJob(
+          'Double Entendres: ' + song.title,
+          'high',
+          GENERATE_ENTENDRES_PROMPT(song.title, song.lyrics),
+          apiKey || '',
+          {},
+          SYSTEM_INSTRUCTIONS_ENTENDRES
+        );
+
+        addJob(
+          'Technical Details: ' + song.title,
+          'high',
+          GENERATE_TECHNICAL_PROMPT(song.title, song.lyrics, song.style, song.settings),
+          apiKey || '',
+          {},
+          SYSTEM_INSTRUCTIONS_TECHNICAL
+        );
+
+        addJob(
+          'Interview & Review: ' + song.title,
+          'high',
+          GENERATE_INTERVIEW_REVIEW_PROMPT(song.title, song.lyrics, song.story || ''),
+          apiKey || '',
+          {},
+          SYSTEM_INSTRUCTIONS_INTERVIEW_REVIEW
+        );
+
+        addJob(
+          'Analysis: ' + song.title,
+          'high',
+          GENERATE_ANALYSIS_PROMPT(song.title, file.name, file.size, song.style),
+          apiKey || '',
+          {},
+          SYSTEM_INSTRUCTIONS_ANALYSIS
+        );
+      }
+    } else {
+      log('error', 'MP3 Mismatch', `Dropped MP3 file "${file.name}" does NOT match the active song "${song.title}".`);
+    }
   };
 
   const handleAction = async (action: string) => {
@@ -1428,77 +1769,9 @@ Under no circumstances should the lyrics end abruptly after a chorus, verse, or 
         break;
       case 'clear':
         localStorage.clear();
-        setSong({ 
-          title: '', 
-          style: '', 
-          lyrics: '',
-          imagePrompts: { start: '', middle: '', end: '' },
-          story: '',
-          storyPrompts: {
-            miranda: { wan: '', sdxl: '' },
-            annelies: { wan: '', sdxl: '' },
-            fannie: { wan: '', sdxl: '' },
-            emma: { wan: '', sdxl: '' },
-            mirandaAnnelies: { wan: '', sdxl: '' },
-            fannieEmma: { wan: '', sdxl: '' },
-            group: { wan: '', sdxl: '' }
-          }
-        });
-        setSelectedInstruments([]);
-        setSelectedStyles([]);
-        setLeftLibrary([]);
-        setRightLibrary([]);
-        setForbiddenTopics({
-          barefoot: false,
-          naturism: false,
-          farm: false,
-          singers: false
-        });
-        setRating('G');
-        setSelectedDialectId('');
-        setInnuendoLevel(0);
-        setReverseLyricsEnabled(false);
-        setEpicLevel(0);
-        setRhymeId('perfect');
-        setSillyLevel(0);
-        setMusicalKey('C Major');
-        setBpm(120);
-        setTimeSignature('4/4');
-        setSingerChildVoices({ miranda: false, annelies: false, fannie: false, emma: false });
-        setSingerEmotions({ miranda: 'Joyful', annelies: 'Joyful', fannie: 'Joyful', emma: 'Joyful' });
-        setSingerPrompts({ miranda: '', annelies: '', fannie: '', emma: '' });
-        setSingerInstruments({ miranda: [], annelies: [], fannie: [], emma: [] });
-        const empty = { wan: '', sdxl: '' };
-        const emptyPrompts = { miranda: { ...empty }, annelies: { ...empty }, fannie: { ...empty }, emma: { ...empty } };
-        setPortraitPrompts({
-          Face: { ...emptyPrompts },
-          Torso: { ...emptyPrompts },
-          Body: { ...emptyPrompts }
-        });
-        setDoubleFailedAlerts(new Set());
-        setAppliedJobIds(new Set());
-        setApiKey(null);
+        clearLogs();
         clearQueue();
-
-        // Reset dialog states
-        setActiveJob(null);
-        setShowLogs(false);
-        setShowGenerate(false);
-        setShowKaraoke(false);
-        setShowSpoiler(false);
-        setShowImagePrompts(false);
-        setShowStory(false);
-        setShowPortrait(false);
-        setShowWardrobe(false);
-        setShowCulinary(false);
-        setShowFarm(false);
-        setViewItem(null);
-        setShowContentSettings(false);
-        setHelpContent(null);
-        setSelectedSinger(null);
-        setDoubleFailedJob(null);
-
-        log('info', 'Environment Cleared', 'All fields, settings, and jobs have been completely reset.');
+        window.location.reload();
         break;
       case 'api-key':
         const win = window as any;
@@ -1616,34 +1889,39 @@ Under no circumstances should the lyrics end abruptly after a chorus, verse, or 
           if (reverseLyricsEnabled && result && result.lyrics) {
             result.lyrics = reverseLyrics(result.lyrics);
           }
+          const finalLyrics = result.lyrics ? result.lyrics.substring(0, 5000) : '';
+          const resolvedImgDesc = job.generationSettings?.imageDescription || '';
           setSong(prev => ({
             ...prev,
             title: result.title || prev.title,
             style: result.style || prev.style,
-            lyrics: result.lyrics || prev.lyrics
+            lyrics: finalLyrics || prev.lyrics,
+            imageDescription: resolvedImgDesc || prev.imageDescription
           }));
           log('info', 'Lyrics Generated', `Lyrics generated successfully for "${result.title}". Downstream tasks (Interview, Story & Images) initiated.`);
 
           // Spawn Interview
-          const interviewPrompt = GENERATE_INTERVIEW_PROMPT(result.title || 'Untitled Song', result.lyrics || '');
+          const interviewPrompt = GENERATE_INTERVIEW_PROMPT(result.title || 'Untitled Song', result.lyrics || '', resolvedImgDesc);
           addJob(
             `Interview: ${result.title || 'Untitled Song'}`, 
             'normal', 
             interviewPrompt, 
             apiKey || '', 
-            undefined, 
+            job.generationSettings, 
             SYSTEM_INSTRUCTIONS_INTERVIEW
           );
 
           // Spawn Story & Image Prompts
-          const storyPrompt = GENERATE_STORY_AND_IMAGE_PROMPTS_PROMPT(result.title || 'Untitled Song', result.lyrics || '', rating, forbiddenTopics);
+          const resolvedSelfReflectForImages = job.generationSettings?.selfReflect ?? selfReflect;
+          const dynamicStoryAndImagesInstructions = getSystemInstructionsStoryAndImages(resolvedSelfReflectForImages);
+          const storyPrompt = GENERATE_STORY_AND_IMAGE_PROMPTS_PROMPT(result.title || 'Untitled Song', result.lyrics || '', rating, forbiddenTopics, resolvedImgDesc);
           addJob(
             `Story & Image Prompts: ${result.title || 'Untitled Song'}`, 
             'normal', 
             storyPrompt, 
             apiKey || '', 
-            undefined, 
-            SYSTEM_INSTRUCTIONS_STORY_AND_IMAGES
+            job.generationSettings, 
+            dynamicStoryAndImagesInstructions
           );
 
           // Save song to Right Library
@@ -1655,7 +1933,8 @@ Under no circumstances should the lyrics end abruptly after a chorus, verse, or 
               ...song,
               title: result.title,
               style: result.style,
-              lyrics: result.lyrics
+              lyrics: result.lyrics,
+              imageDescription: resolvedImgDesc
             },
           };
           addToLibrary(item, 'right');
@@ -1669,10 +1948,53 @@ Under no circumstances should the lyrics end abruptly after a chorus, verse, or 
           downloadJson(instructionsData, `${result.title || 'Untitled Song'}-instructions`);
           log('info', 'File Saved', `Lyrics instructions JSON saved and downloaded as "${result.title || 'Untitled'}-instructions.json".`);
 
+          const songTitleStr = result.title || 'Untitled Song';
+          const songStyleStr = result.style || '';
+          const songLyricsStr = result.lyrics || '';
+
+          // Download details Markdown file containing title, style and lyrics
+          downloadDetailsMarkdown(songTitleStr, songStyleStr, songLyricsStr);
+          log('info', 'File Saved', `Song details saved and downloaded as "${songTitleStr}-details.md".`);
+
+          // Download Karaoke Markdown file containing title and lyrics
+          downloadKaraokeMarkdown(songTitleStr, songLyricsStr);
+          log('info', 'File Saved', `Karaoke lyrics saved and downloaded as "${songTitleStr}.md".`);
+
+          // Spawn Story Behind Song
+          const storyBehindSongPrompt = GENERATE_STORY_BEHIND_SONG_PROMPT(songTitleStr, songLyricsStr, resolvedImgDesc);
+          addJob(
+            `Story Behind Song: ${songTitleStr}`,
+            'normal',
+            storyBehindSongPrompt,
+            apiKey || '',
+            job.generationSettings,
+            SYSTEM_INSTRUCTIONS_STORY_BEHIND_SONG
+          );
+          log('info', 'Story Behind Song Started', `Launching "Story Behind Song" generation job to tell the story and get singers' input on "${songTitleStr}".`);
+
           // Download parameters Markdown file containing only the enabled options/values
           if (job.generationSettings) {
-            downloadParametersMarkdown(result.title || 'Untitled Song', job.generationSettings);
-            log('info', 'File Saved', `Active song parameters saved and downloaded as "${result.title || 'Untitled'}-params.md".`);
+            downloadParametersMarkdown(songTitleStr, job.generationSettings);
+            log('info', 'File Saved', `Active song parameters saved and downloaded as "${songTitleStr}-params.md".`);
+
+            // If the song dialect is not English, spawn a Translation job
+            const gSettings = job.generationSettings || {};
+            const enabledTabs = gSettings.enabledTabs || {};
+            const dialectId = gSettings.dialectId || '';
+            const isNotEnglish = enabledTabs.accent && dialectId && dialectId.split(',').filter(Boolean).some((id: string) => !id.startsWith('en-'));
+            if (isNotEnglish) {
+              const dialectNames = dialectId.split(',').filter(Boolean).map((id: string) => findDialectById(id)?.name || id).join(', ');
+              const translationPrompt = GENERATE_TRANSLATION_PROMPT(songTitleStr, songLyricsStr, dialectNames);
+              addJob(
+                `Translation: ${songTitleStr}`,
+                'normal',
+                translationPrompt,
+                apiKey || '',
+                job.generationSettings,
+                SYSTEM_INSTRUCTIONS_TRANSLATION
+              );
+              log('info', 'Translation Started', `The song is composed in a non-English dialect/language (${dialectNames}). Launching a Translation job to create English lyrics and linguistic explanation...`);
+            }
           }
         }
 
@@ -1684,16 +2006,18 @@ Under no circumstances should the lyrics end abruptly after a chorus, verse, or 
             imagePrompts: result.imagePrompts || prev.imagePrompts
           }));
           log('info', 'Story Generated', `Story and Image prompts compiled for song. Now launching character portraits expansion...`);
-
+ 
           const songTitle = job.name.replace('Story & Image Prompts: ', '');
           const portraitsPrompt = GENERATE_PORTRAITS_PROMPT(songTitle, result.story || '');
+          const resolvedSelfReflectForPortraits = job.generationSettings?.selfReflect ?? selfReflect;
+          const dynamicPortraitsInstructions = getSystemInstructionsPortraits(resolvedSelfReflectForPortraits);
           addJob(
             `Portraits: ${songTitle}`, 
             'normal', 
             portraitsPrompt, 
             apiKey || '', 
-            undefined, 
-            SYSTEM_INSTRUCTIONS_PORTRAITS
+            job.generationSettings, 
+            dynamicPortraitsInstructions
           );
         }
 
@@ -1722,6 +2046,7 @@ Under no circumstances should the lyrics end abruptly after a chorus, verse, or 
                 singerPrompts,
                 singerInstruments,
                 singerPartnerUps,
+                singerNationalities,
                 selfReflect,
                 reverseLyricsEnabled,
                 selectedSoundEffects,
@@ -1746,6 +2071,137 @@ Under no circumstances should the lyrics end abruptly after a chorus, verse, or 
             storyPrompts: result.storyPrompts || prev.storyPrompts || result
           }));
           log('info', 'Portraits Generated', `Character portrait prompt variations mapped successfully.`);
+        }
+
+        // Process "Translation" job completion
+        else if (job.name.startsWith('Translation: ')) {
+          if (result && result.lyrics) {
+            try {
+              const songTitle = result.title || job.name.replace('Translation: ', '');
+              let mdContent = `# ${songTitle} - English Translation\n\n`;
+              mdContent += `### Lyrical Karaoke Translation (English)\n\n${result.lyrics}\n\n`;
+              mdContent += `### Language & Dialect Cultural Context\n\n${result.explanation || 'No cultural notes provided.'}\n`;
+
+              const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              const safeTitle = songTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'untitled';
+              a.href = url;
+              a.download = `${safeTitle}-translation.md`;
+              a.click();
+              URL.revokeObjectURL(url);
+
+              // Add translated markdown to Library so the user has it in their list
+              const translationItem: LibraryItem = {
+                id: job.id,
+                name: `${songTitle} (Translation)`,
+                type: 'markdown',
+                content: mdContent
+              };
+              addToLibrary(translationItem, 'right');
+
+              log('info', 'File Saved', `English translation and cultural context saved and downloaded as "${safeTitle}-translation.md".`);
+            } catch (err) {
+              console.error('Failed to download translation markdown file:', err);
+            }
+          }
+        }
+
+        else if (job.name.startsWith('Story Behind Song: ')) {
+          const md = result?.markdown || result || '';
+          const songTitle = job.name.replace('Story Behind Song: ', '');
+          setSong(prev => ({ ...prev, story: md }));
+          downloadCustomMarkdown(songTitle, 'story', md);
+
+          const libraryItem: LibraryItem = {
+            id: job.id,
+            name: `${songTitle} (Story behind the song)`,
+            type: 'markdown',
+            content: md
+          };
+          addToLibrary(libraryItem, 'right');
+
+          log('info', 'File Saved', `Story behind the song saved and downloaded as "${songTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'untitled'}-story.md".`);
+        }
+
+        else if (job.name.startsWith('Double Entendres: ')) {
+          const md = result?.markdown || result || '';
+          setSong(prev => ({ ...prev, entendres: md }));
+          const songTitle = job.name.replace('Double Entendres: ', '');
+          downloadCustomMarkdown(songTitle, 'entendres', md);
+          
+          const libraryItem: LibraryItem = {
+            id: job.id,
+            name: `${songTitle} (Double Entendres)`,
+            type: 'markdown',
+            content: md
+          };
+          addToLibrary(libraryItem, 'right');
+          log('info', 'File Saved', `Double entendres analysis saved and downloaded as "${songTitle}-entendres.md".`);
+        }
+
+        else if (job.name.startsWith('Technical Details: ')) {
+          const md = result?.markdown || result || '';
+          setSong(prev => ({ ...prev, technical: md }));
+          const songTitle = job.name.replace('Technical Details: ', '');
+          downloadCustomMarkdown(songTitle, 'technical', md);
+          
+          const libraryItem: LibraryItem = {
+            id: job.id,
+            name: `${songTitle} (Technical Details)`,
+            type: 'markdown',
+            content: md
+          };
+          addToLibrary(libraryItem, 'right');
+          log('info', 'File Saved', `Technical details analysis saved and downloaded as "${songTitle}-technical.md".`);
+        }
+
+        else if (job.name.startsWith('Interview & Review: ')) {
+          const md = result?.markdown || result || '';
+          setSong(prev => ({ ...prev, interviewReview: md }));
+          const songTitle = job.name.replace('Interview & Review: ', '');
+          downloadCustomMarkdown(songTitle, 'interview', md);
+          
+          const libraryItem: LibraryItem = {
+            id: job.id,
+            name: `${songTitle} (Interview & Review)`,
+            type: 'markdown',
+            content: md
+          };
+          addToLibrary(libraryItem, 'right');
+          log('info', 'File Saved', `Senna Bakker Interview and Track Review saved and downloaded as "${songTitle}-interview.md".`);
+        }
+
+        else if (job.name.startsWith('Analysis: ')) {
+          const md = result?.markdown || result || '';
+          setSong(prev => ({ ...prev, analysis: md }));
+          const songTitle = job.name.replace('Analysis: ', '');
+          downloadCustomMarkdown(songTitle, 'analysis', md);
+          
+          const libraryItem: LibraryItem = {
+            id: job.id,
+            name: `${songTitle} (Vocal & Sound Analysis)`,
+            type: 'markdown',
+            content: md
+          };
+          addToLibrary(libraryItem, 'right');
+          log('info', 'File Saved', `MP3 vocal/sound analysis saved and downloaded as "${songTitle}-analysis.md".`);
+        }
+
+        else if (job.name.startsWith('Compare Versions: ')) {
+          const md = result?.markdown || result || '';
+          setSong(prev => ({ ...prev, compare: md }));
+          const songTitle = job.name.replace('Compare Versions: ', '');
+          downloadCustomMarkdown(songTitle, 'compare', md);
+          
+          const libraryItem: LibraryItem = {
+            id: job.id,
+            name: `${songTitle} (Versions Comparison)`,
+            type: 'markdown',
+            content: md
+          };
+          addToLibrary(libraryItem, 'right');
+          log('info', 'File Saved', `MP3 files comparison for "${songTitle}" saved and downloaded as "${songTitle}-compare.md".`);
         }
 
         // 5. Older/Direct portrait triggers if any
@@ -1791,12 +2247,40 @@ Under no circumstances should the lyrics end abruptly after a chorus, verse, or 
     singerPrompts,
     singerInstruments,
     singerPartnerUps,
+    singerNationalities,
     selfReflect,
     reverseLyricsEnabled,
     selectedSoundEffects,
     introConfig,
     outroConfig
   ]);
+
+  const handleResetGenerationSettings = () => {
+    setSelectedInstruments([]);
+    setSelectedStyles([]);
+    setRating('PG');
+    setSelectedDialectId('');
+    setChildVoice(false);
+    setSelfReflect(false);
+    setSelectedSoundEffects([]);
+    setIntroConfig({ enabled: false, duration: 15, instruments: [] });
+    setOutroConfig({ enabled: false, duration: 15, instruments: [] });
+    setInnuendoLevel(0);
+    setReverseLyricsEnabled(false);
+    setEpicLevel(0);
+    setRhymeId('perfect');
+    setSillyLevel(0);
+    setSapphicLevel(0);
+    setMusicalKey('C Major');
+    setBpm(120);
+    setTimeSignature('4/4');
+    setSingerChildVoices({ miranda: false, annelies: false, fannie: false, emma: false });
+    setSingerEmotions({ miranda: 'Joyful', annelies: 'Joyful', fannie: 'Joyful', emma: 'Joyful' });
+    setSingerPrompts({ miranda: '', annelies: '', fannie: '', emma: '' });
+    setSingerInstruments({ miranda: [], annelies: [], fannie: [], emma: [] });
+    setSingerPartnerUps({ miranda: false, annelies: false, fannie: false, emma: false });
+    setSingerNationalities({ miranda: '', annelies: '', fannie: '', emma: '' });
+  };
 
   const handleUpdateImagePrompt = (key: 'start' | 'middle' | 'end', value: string) => {
     setSong(prev => ({
@@ -1872,6 +2356,8 @@ Under no circumstances should the lyrics end abruptly after a chorus, verse, or 
     viewItem,
     setViewItem,
     handleFileDrop,
+    isMp3Matched,
+    handleDropMp3,
     showContentSettings,
     setShowContentSettings,
     forbiddenTopics,
@@ -1888,6 +2374,8 @@ Under no circumstances should the lyrics end abruptly after a chorus, verse, or 
     setSillyLevel,
     sapphicLevel,
     setSapphicLevel,
+    wildnessLevel,
+    setWildnessLevel,
     musicalKey,
     setMusicalKey,
     bpm,
@@ -1904,5 +2392,8 @@ Under no circumstances should the lyrics end abruptly after a chorus, verse, or 
     setSingerInstruments,
     singerPartnerUps,
     setSingerPartnerUps,
+    singerNationalities,
+    setSingerNationalities,
+    handleResetGenerationSettings
   };
 }

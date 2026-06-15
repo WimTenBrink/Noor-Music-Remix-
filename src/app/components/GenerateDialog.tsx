@@ -4,22 +4,38 @@ import {
   Globe, Smile, Music, ShieldAlert, Badge, Radio, Play, Square, 
   RotateCcw, Flame, Trophy, Heart, Coffee, Frown, Sparkles, Zap, Quote,
   ArrowUp, ArrowDown, X, Check, Search, Trash2, CheckCircle, Sliders, Volume2, AlignLeft,
-  Mic2, Users
+  Mic2, Users, ChevronDown, ChevronRight, Copy, Image, Upload, AlertCircle, RefreshCw
 } from 'lucide-react';
+import { useJobQueue } from '../hooks/useJobQueue';
 import { LANGUAGE_GROUPS, findDialectById, findGroupByDialectId } from '../utils/languages';
 import { SONG_EMOTIONS } from '../utils/emotions';
 import { evaluateAttributes } from './StylesAndGroovesDialog'; // Reuse attribute evaluator helper if exported, or re-implement below for self-containment
-import { STYLES } from '../../constants/styles';
+import { STYLES, INTENT_ENERGY_GROUPS } from '../../constants/styles';
+
+export const INTENT_ENERGY_GROUPS_LOOKUP: Record<string, { name: string; examples: string; description: string; category: string; umbrella: string }> = {};
+INTENT_ENERGY_GROUPS.forEach(g => {
+  g.subgroups.forEach(sg => {
+    INTENT_ENERGY_GROUPS_LOOKUP[sg.id] = {
+      name: sg.name,
+      examples: sg.examples,
+      description: sg.description,
+      category: g.category,
+      umbrella: g.umbrella
+    };
+  });
+});
 import { GROOVE_CATEGORIES, getGroupedAndSortedGrooves } from '../utils/grooves';
 import { GROOVE_TOOLTIPS } from '../utils/tooltipsData';
-import { INSTRUMENTS } from '../../constants/instruments';
+import { INSTRUMENTS, SINGLE_SINGER_INSTRUMENTS, INSTRUMENT_GROUPS_LIST } from '../../constants/instruments';
 import { SOUND_EFFECTS } from '../../constants/sfx';
 import { RHYME_TYPES, RHYME_CATEGORIES, findRhymeCategoryOfId, findRhymeTypeById } from '../utils/rhymes';
 import { getInnuendoStep, INNUENDO_STEPS } from '../utils/innuendoLevels';
 import { getEpicStep } from '../utils/epicLevels';
 import { SILLY_STEPS, getSillyStep } from '../utils/sillyLevels';
 import { getSapphicStep, SAPPHIC_STEPS } from '../utils/sapphicLevels';
+import { getWildnessStep, WILDNESS_STEPS } from '../utils/wildnessLevels';
 import { findKeyByIndex, findKeyIndexByName, findTimeSignatureByFraction, TIME_SIGNATURES, MUSICAL_KEYS, getTempoName } from '../utils/musicParams';
+import { NATIONALITIES, findNationalityById } from '../utils/nationalities';
 
 // Reimplement evaluateAttributes locally for self-containment/robustness
 const getLocalAttributes = (name: string, description: string, type: 'style' | 'groove') => {
@@ -109,6 +125,7 @@ interface GenerateDialogProps {
     rhymeId?: string,
     sillyLevel?: number,
     sapphicLevel?: number,
+    wildnessLevel?: number,
     musicalKey?: string,
     bpm?: number,
     timeSignature?: string,
@@ -117,7 +134,12 @@ interface GenerateDialogProps {
     targetSingerPrompts?: Record<string, string>,
     targetSingerInstruments?: Record<string, string[]>,
     targetSingerPartnerUps?: Record<string, boolean>,
-    targetEnabledTabs?: Record<string, boolean>
+    targetSingerNationalities?: Record<string, string>,
+    targetSuggestedTitle?: string,
+    targetEnabledTabs?: Record<string, boolean>,
+    targetExactTitle?: boolean,
+    targetIntentEnergy?: string[],
+    targetImageDescription?: string
   ) => void;
   selectedInstruments: string[];
   selectedStyles: string[];
@@ -130,6 +152,7 @@ interface GenerateDialogProps {
   currentRhymeId?: string;
   currentSillyLevel?: number;
   currentSapphicLevel?: number;
+  currentWildnessLevel?: number;
   currentMusicalKey?: string;
   currentBpm?: number;
   currentTimeSignature?: string;
@@ -138,12 +161,16 @@ interface GenerateDialogProps {
   initialSingerPrompts?: Record<string, string>;
   initialSingerInstruments?: Record<string, string[]>;
   initialSingerPartnerUps?: Record<string, boolean>;
+  initialSingerNationalities?: Record<string, string>;
   onClear?: () => void;
   currentTitle?: string;
 }
 
 type TabId = 
+  | 'suggestedTitle'
   | 'prompt'
+  | 'artistImpression'
+  | 'intentEnergy'
   | 'vocalAccentTone'
   | 'composer'
   | 'singers'
@@ -157,69 +184,6 @@ export const singersMeta = [
   { id: 'annelies', name: 'Annelies', voice: 'Adult Alto / Child Alto' },
   { id: 'fannie', name: 'Fannie', voice: 'Adult Tenor / Child Soprano' },
   { id: 'emma', name: 'Emma', voice: 'Adult Mezzo / Child Alto' }
-];
-
-export const SINGLE_SINGER_INSTRUMENTS = [
-  // Ancient & Exotic
-  { name: "Crwth", description: "Ancient Celtic six-string bowed lyre from Wales.", group: "Ancient & Exotic" },
-  { name: "Lyre", description: "Ancient Greek classical plucked string instrument.", group: "Ancient & Exotic" },
-  { name: "Kithara", description: "Professional heavy-wooden string instrument of antiquity.", group: "Ancient & Exotic" },
-  { name: "Lituus", description: "Ancient Roman long bronze trumpet with curved end.", group: "Ancient & Exotic" },
-  { name: "Carnyx", description: "Iron Age Celtic bronze war trumpet with boar-shaped bell.", group: "Ancient & Exotic" },
-  { name: "Hurdy-Gurdy", description: "Medieval mechanical wheel-rubbed cranked string instrument.", group: "Ancient & Exotic" },
-  { name: "Glass Harmonica", description: "Friction-played spinning glass bowls.", group: "Ancient & Exotic" },
-
-  // Brass
-  { name: "Trumpet", description: "High-pitched brilliant metal brass instrument with valve play.", group: "Brass" },
-  { name: "Trombone", description: "Slide-sliding low register brass bell.", group: "Brass" },
-  { name: "Tuba", description: "Deepest low-end brass foundational valve horn.", group: "Brass" },
-  { name: "French Horn", description: "Warm conical coiled brass valve instrument.", group: "Brass" },
-  { name: "Bugle", description: "Simple keyless military signaling brass horn.", group: "Brass" },
-
-  // Drums & Snare
-  { name: "Snare Drum", description: "Rattling wire-bottom high-impact military snare.", group: "Drums & Snare" },
-  { name: "Side Drum", description: "Historically styled deep-frame marching field drum.", group: "Drums & Snare" },
-  { name: "Bass Drum", description: "Deep booming resonant low-frequency percussion.", group: "Drums & Snare" },
-  { name: "Bodhrán", description: "Traditional Irish hand-held frame drum beaten with a tipper.", group: "Drums & Snare" },
-  { name: "Timpani", description: "Large orchestral copper-pot pitched kettledrums.", group: "Drums & Snare" },
-  { name: "Djembe", description: "Goblet-shaped rope-tuned hand drum of West Africa.", group: "Drums & Snare" },
-
-  // Percussion & Metal
-  { name: "Tambourine", description: "Handheld frame wood drum with jingles.", group: "Percussion & Metal" },
-  { name: "Triangle", description: "High ringing metal bar of high pitch and clarity.", group: "Percussion & Metal" },
-  { name: "Wind Chimes", description: "Delicate wind-blown hanging metal rods of high shimmer.", group: "Percussion & Metal" },
-  { name: "Glockenspiel", description: "Set of tuned metallic bars played with hard mallets.", group: "Percussion & Metal" },
-  { name: "Cymbals", description: "Crashing or riding round thin metal plates.", group: "Percussion & Metal" },
-  { name: "Castanets", description: "Clicking wooden rhythmic shells held in fingers.", group: "Percussion & Metal" },
-  { name: "Cowbell", description: "Clunky rustic hollow metal percussion vessel.", group: "Percussion & Metal" },
-
-  // Electronic
-  { name: "Keytar", description: "Synthesizer worn with a strap like a guitar.", group: "Electronic" },
-  { name: "Stylophone", description: "Miniature analog stylus keyboard.", group: "Electronic" },
-  { name: "Otamatone", description: "Quirky note-slide japanese toy synth.", group: "Electronic" },
-  { name: "Theremin", description: "Non-contact electromagnetic tone slider.", group: "Electronic" },
-  { name: "Mellotron", description: "Vintage tape-replay polyphonic keyboard instrument.", group: "Electronic" },
-
-  // Acoustic Strings
-  { name: "Acoustic Guitar", description: "Rich, resonance classical plucked string instrument.", group: "Acoustic Strings" },
-  { name: "Lute", description: "Plucked string instrument with a rounded body.", group: "Acoustic Strings" },
-  { name: "Harp", description: "Plucked multi-string frame instrument.", group: "Acoustic Strings" },
-  { name: "Mandolin", description: "High-pitched plucked string instrument.", group: "Acoustic Strings" },
-  { name: "Banjo", description: "Twangy plucked string instrument with a drum-like body.", group: "Acoustic Strings" },
-  { name: "Dulcimer", description: "Zither-like folk strings beaten with tiny mallets.", group: "Acoustic Strings" },
-
-  // Bowed Strings
-  { name: "Violin", description: "Bowed high-register classical string instrument.", group: "Bowed Strings" },
-  { name: "Viola", description: "Warm, medium register bowed stringed companion.", group: "Bowed Strings" },
-  { name: "Cello", description: "Deep and highly resonant bowed classical string instrument.", group: "Bowed Strings" },
-  { name: "Double Bass", description: "Lowest register heavy-timber orchestral bowed strings.", group: "Bowed Strings" },
-
-  // Woodwinds & Reeds
-  { name: "Bagpipes", description: "Scottish bellows-blown bladder and drone pipes.", group: "Woodwinds & Reeds" },
-  { name: "Flute", description: "Woodwind instrument with a sweet, airy voice.", group: "Woodwinds & Reeds" },
-  { name: "Panpipes", description: "Multi-pipe wind instrument of antiquity.", group: "Woodwinds & Reeds" },
-  { name: "Recorder", description: "Simple wooden internal duct flute.", group: "Woodwinds & Reeds" },
-  { name: "Accordion", description: "Box bellows-driven reed instrument.", group: "Woodwinds & Reeds" }
 ];
 
 export const GenerateDialog: React.FC<GenerateDialogProps> = ({ 
@@ -237,6 +201,7 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
   currentRhymeId = 'perfect',
   currentSillyLevel = 0,
   currentSapphicLevel = 0,
+  currentWildnessLevel = 0,
   currentMusicalKey = 'C Major',
   currentBpm = 120,
   currentTimeSignature = '4/4',
@@ -245,24 +210,92 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
   initialSingerPrompts,
   initialSingerInstruments,
   initialSingerPartnerUps,
+  initialSingerNationalities,
   onClear,
   currentTitle = 'Untitled'
 }) => {
   // Tabs config
   const tabsList: { id: TabId; label: string; details: string; icon: React.ReactNode }[] = [
-    { id: 'prompt', label: '1. Lyrics Instructions & Prompt', details: 'Base lyrics instructions & song ideas.', icon: <Quote size={13} /> },
-    { id: 'vocalAccentTone', label: '2. Accent & Track Emotion', details: 'Choose regional dialects & vocal performance feeling.', icon: <Globe size={13} /> },
-    { id: 'composer', label: '3. Genre Styles & Backing Band', details: 'Set styles, tempos, grooves & instrument tracks.', icon: <Flame size={13} /> },
-    { id: 'singers', label: '4. Singer Casting & duets', details: 'Casting prompts, child pitch toggles, & duet pairings.', icon: <Mic2 size={13} /> },
-    { id: 'musicTheory', label: '5. Tempo, Key & Rhythm', details: 'BPM speed, musical scale, & time signatures.', icon: <Music size={13} /> },
-    { id: 'structure', label: '6. Song Structure & Sound FX', details: 'Intro/outro controls and bracket sound FX.', icon: <Play size={13} /> },
-    { id: 'poetics', label: '7. Poetics & Safeties', details: 'Lyric rhyme structures & content warnings.', icon: <AlignLeft size={13} /> },
-    { id: 'sliders', label: '8. Aesthetic Sliders', details: 'Creative playfulness, silliness, & innuendo scales.', icon: <Sliders size={13} /> }
+    { id: 'prompt', label: 'Lyrics Guidelines & Prompts', details: 'Construct titles, lyrics instructions, and artist style cues.', icon: <Quote size={13} /> },
+    { id: 'intentEnergy', label: 'Intent & Energy', details: 'Apply energy umbrellas and brain/chill/dance/feeling focus groups.', icon: <Zap size={13} /> },
+    { id: 'vocalAccentTone', label: 'Accent & Track Emotion', details: 'Choose regional dialects & vocal performance feeling.', icon: <Globe size={13} /> },
+    { id: 'composer', label: 'Genre Styles & Backing Band', details: 'Set styles, tempos, grooves & instrument tracks.', icon: <Flame size={13} /> },
+    { id: 'singers', label: 'Singer Casting & duets', details: 'Casting prompts, child pitch toggles, & duet pairings.', icon: <Mic2 size={13} /> },
+    { id: 'musicTheory', label: 'Tempo, Key & Rhythm', details: 'BPM speed, musical scale, & time signatures.', icon: <Music size={13} /> },
+    { id: 'structure', label: 'Song Structure & Sound FX', details: 'Intro/outro controls and bracket sound FX.', icon: <Play size={13} /> },
+    { id: 'poetics', label: 'Poetics & Safeties', details: 'Lyric rhyme structures & content warnings.', icon: <AlignLeft size={13} /> },
+    { id: 'sliders', label: 'Aesthetic Sliders', details: 'Creative playfulness, silliness, & innuendo scales.', icon: <Sliders size={13} /> }
   ];
 
   // Active Tab
   const [activeTabId, setActiveTabId] = useState<TabId>('prompt');
   const [showSummaryModal, setShowSummaryModal] = useState(false);
+
+  // Tree view child branches structures matching sub-tabs / configurable components
+  const tabChildren: Record<TabId, { subId: string; label: string }[]> = {
+    suggestedTitle: [],
+    prompt: [
+      { subId: 'imageToSong', label: '📷 Drop Image Inspiration' },
+      { subId: 'suggestedTitle', label: 'Suggested Song Title' },
+      { subId: 'lyrics', label: 'Lyrics Guidelines & Prompts' },
+      { subId: 'artistImpression', label: 'Artist Impression & Ideas' }
+    ],
+    artistImpression: [],
+    intentEnergy: [],
+    vocalAccentTone: [
+      { subId: 'accent', label: 'Regional Dialects' },
+      { subId: 'emotion', label: 'Track Emotion' }
+    ],
+    composer: [
+      { subId: 'styles', label: 'Genre Styles' },
+      { subId: 'instruments', label: 'Instrument Tracks' }
+    ],
+    singers: [
+      { subId: 'casting', label: 'Voice Casting' },
+      { subId: 'profile', label: 'Voice Profiles' },
+      { subId: 'instruments', label: 'Solo Instruments' },
+      { subId: 'partnerUp', label: 'Duet Partner-ups' },
+      { subId: 'nationalities', label: 'National Cultures' }
+    ],
+    musicTheory: [
+      { subId: 'bpm', label: 'BPM Tempo' },
+      { subId: 'key', label: 'Musical Key' },
+      { subId: 'timeSig', label: 'Time Signature' }
+    ],
+    structure: [
+      { subId: 'intro', label: 'Intro Settings' },
+      { subId: 'outro', label: 'Outro Settings' },
+      { subId: 'sfx', label: 'Sound Effects' }
+    ],
+    poetics: [
+      { subId: 'rhyme', label: 'Rhyme Patterns' },
+      { subId: 'reversal', label: 'Inversion & Reversal' },
+      { subId: 'reflection', label: 'Self reflection' },
+      { subId: 'safety', label: 'Topic Warnings' }
+    ],
+    sliders: [
+      { subId: 'silly', label: 'Silliness Scale' },
+      { subId: 'innuendo', label: 'Innuendo Scale' },
+      { subId: 'epic', label: 'Epicness Scale' },
+      { subId: 'sapphic', label: 'Sapphic Scale' },
+      { subId: 'wildness', label: 'Wildness Scale' }
+    ]
+  };
+
+  // Node expanded states for collapsible tree options sidebar
+  const [expandedNodes, setExpandedNodes] = useState<Record<TabId, boolean>>({
+    suggestedTitle: true,
+    prompt: true,
+    artistImpression: true,
+    intentEnergy: true,
+    vocalAccentTone: true,
+    composer: true,
+    singers: true,
+    musicTheory: true,
+    structure: true,
+    poetics: true,
+    sliders: true
+  });
 
   // Enabled Tab map (maintains individual keys for precise setting checks)
   const [enabledTabs, setEnabledTabs] = useState<Record<string, boolean>>(() => {
@@ -272,7 +305,10 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
         const parsed = JSON.parse(saved);
         return { 
           ...parsed, 
+          suggestedTitle: true,
           prompt: true,
+          artistImpression: true,
+          intentEnergy: parsed.intentEnergy || false,
           singers: parsed.singers || false,
           singerInstruments: parsed.singerInstruments || false,
           partnerUp: parsed.partnerUp || false,
@@ -280,11 +316,15 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
           beatsPerMinute: parsed.beatsPerMinute || false,
           timeSignature: parsed.timeSignature || false,
           sapphicLevel: parsed.sapphicLevel || false,
-        }; // Prompt is always true
+          wildnessLevel: parsed.wildnessLevel || false,
+        }; // Core content tabs are always true
       } catch (e) {}
     }
     return {
+      suggestedTitle: true,
       prompt: true,
+      artistImpression: true,
+      intentEnergy: false,
       accent: false,
       emotion: false,
       styles: false,
@@ -303,6 +343,7 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
       epicLevel: false,
       sillyLevel: false,
       sapphicLevel: false,
+      wildnessLevel: false,
       rhymeScheme: false,
       musicalKey: false,
       beatsPerMinute: false,
@@ -315,7 +356,7 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
   }, [enabledTabs]);
 
   const toggleTabEnabled = (id: string) => {
-    if (id === 'prompt') return; // Cannot disable prompt
+    if (id === 'prompt' || id === 'suggestedTitle' || id === 'artistImpression') return; // Cannot disable core prompt setups
     setEnabledTabs(prev => ({
       ...prev,
       [id]: !prev[id]
@@ -324,11 +365,22 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
 
   // Values states (synchronized with localStorage like previous code)
   const [instructions, setInstructions] = useState(() => localStorage.getItem('noor-instructions') || '');
+  const [imageDescription, setImageDescription] = useState(() => localStorage.getItem('noor-image-description') || '');
+  const [imageSeriousness, setImageSeriousness] = useState<number>(() => {
+    const saved = localStorage.getItem('noor-image-seriousness');
+    return saved ? parseInt(saved, 10) : 0;
+  });
   const [musicInspiration, setMusicInspiration] = useState(() => localStorage.getItem('noor-music-inspiration') || '');
+  const [suggestedTitle, setSuggestedTitle] = useState(() => localStorage.getItem('noor-suggested-title') || '');
+  const [exactTitle, setExactTitle] = useState(() => localStorage.getItem('noor-exact-title') === 'true');
   const [dialogDialectId, setDialogDialectId] = useState(() => localStorage.getItem('noor-dialect-id') || currentDialectId || 'en-GB');
   const [dialogRating, setDialogRating] = useState(() => localStorage.getItem('noor-rating') || currentRating || 'PG');
   const [selectedGrooves, setSelectedGrooves] = useState<string[]>(() => {
     const saved = localStorage.getItem('noor-selected-grooves');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [selectedIntents, setSelectedIntents] = useState<string[]>(() => {
+    const saved = localStorage.getItem('noor-selected-intents');
     return saved ? JSON.parse(saved) : [];
   });
   const [dialogInnuendoLevel, setDialogInnuendoLevel] = useState<number>(() => {
@@ -358,6 +410,10 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
   const [dialogSapphicLevel, setDialogSapphicLevel] = useState<number>(() => {
     const saved = localStorage.getItem('noor-sapphic-level');
     return saved ? parseInt(saved, 10) : currentSapphicLevel || 0;
+  });
+  const [dialogWildnessLevel, setDialogWildnessLevel] = useState<number>(() => {
+    const saved = localStorage.getItem('noor-wildness-level');
+    return saved ? parseInt(saved, 10) : currentWildnessLevel || 0;
   });
   const [dialogRhymeId, setDialogRhymeId] = useState<string>(() => {
     return localStorage.getItem('noor-rhyme-id') || currentRhymeId || 'perfect';
@@ -391,15 +447,24 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
   const [activeInstrumentSinger, setActiveInstrumentSinger] = useState<'miranda' | 'annelies' | 'fannie' | 'emma'>('miranda');
   const [activeSingerCastingId, setActiveSingerCastingId] = useState<'miranda' | 'annelies' | 'fannie' | 'emma'>('miranda');
   const [activeSingerInstrumentGroup, setActiveSingerInstrumentGroup] = useState<string>('All');
+  const [intentCategoryFilter, setIntentCategoryFilter] = useState<string>('All');
+  const [intentQuery, setIntentQuery] = useState<string>('');
 
   // Consolidated sub-tabs states
+  const { jobs, addJob, speedUp } = useJobQueue();
+  const [activeAnalysisJobId, setActiveAnalysisJobId] = useState<string | null>(null);
+  const [lastAnalyzedImage, setLastAnalyzedImage] = useState<string | null>(null);
+  const [isImageProcessing, setIsImageProcessing] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [promptSubTab, setPromptSubTab] = useState<'imageToSong' | 'suggestedTitle' | 'lyrics' | 'artistImpression'>('lyrics');
   const [accentToneSubTab, setAccentToneSubTab] = useState<'accent' | 'emotion'>('accent');
   const [composerSubTab, setComposerSubTab] = useState<'styles' | 'instruments'>('styles');
-  const [singersSubTab, setSingersSubTab] = useState<'casting' | 'profile' | 'instruments' | 'partnerUp'>('casting');
+  const [singersSubTab, setSingersSubTab] = useState<'casting' | 'profile' | 'instruments' | 'partnerUp' | 'nationalities'>('casting');
   const [musicTheorySubTab, setMusicTheorySubTab] = useState<'bpm' | 'key' | 'timeSig'>('bpm');
   const [structureSubTab, setStructureSubTab] = useState<'intro' | 'outro' | 'sfx'>('intro');
   const [poeticsSubTab, setPoeticsSubTab] = useState<'rhyme' | 'reversal' | 'reflection' | 'safety'>('rhyme');
-  const [slidersSubTab, setSlidersSubTab] = useState<'innuendo' | 'epic' | 'silly' | 'sapphic'>('innuendo');
+  const [slidersSubTab, setSlidersSubTab] = useState<'innuendo' | 'epic' | 'silly' | 'sapphic' | 'wildness'>('innuendo');
 
   const [singerChildVoices, setSingerChildVoices] = useState<Record<string, boolean>>(() => {
     const saved = localStorage.getItem('noor-singer-child-voices');
@@ -426,6 +491,11 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
     return saved ? JSON.parse(saved) : (initialSingerPartnerUps || { miranda: false, annelies: false, fannie: false, emma: false });
   });
 
+  const [singerNationalities, setSingerNationalities] = useState<Record<string, string>>(() => {
+    const saved = localStorage.getItem('noor-singer-nationalities');
+    return saved ? JSON.parse(saved) : (initialSingerNationalities || { miranda: '', annelies: '', fannie: '', emma: '' });
+  });
+
   const [allowFastBpm, setAllowFastBpm] = useState<boolean>(() => {
     const saved = localStorage.getItem('noor-allow-fast-bpm');
     return saved !== null ? saved === 'true' : false;
@@ -437,10 +507,16 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
   useEffect(() => { localStorage.setItem('noor-singer-prompts', JSON.stringify(singerPrompts)); }, [singerPrompts]);
   useEffect(() => { localStorage.setItem('noor-singer-instruments', JSON.stringify(singerInstruments)); }, [singerInstruments]);
   useEffect(() => { localStorage.setItem('noor-singer-partner-ups', JSON.stringify(singerPartnerUps)); }, [singerPartnerUps]);
+  useEffect(() => { localStorage.setItem('noor-singer-nationalities', JSON.stringify(singerNationalities)); }, [singerNationalities]);
   useEffect(() => { localStorage.setItem('noor-allow-fast-bpm', allowFastBpm ? 'true' : 'false'); }, [allowFastBpm]);
   useEffect(() => { localStorage.setItem('noor-instructions', instructions); }, [instructions]);
+  useEffect(() => { localStorage.setItem('noor-image-description', imageDescription); }, [imageDescription]);
+  useEffect(() => { localStorage.setItem('noor-image-seriousness', imageSeriousness.toString()); }, [imageSeriousness]);
   useEffect(() => { localStorage.setItem('noor-music-inspiration', musicInspiration); }, [musicInspiration]);
+  useEffect(() => { localStorage.setItem('noor-suggested-title', suggestedTitle); }, [suggestedTitle]);
+  useEffect(() => { localStorage.setItem('noor-exact-title', exactTitle ? 'true' : 'false'); }, [exactTitle]);
   useEffect(() => { localStorage.setItem('noor-selected-grooves', JSON.stringify(selectedGrooves)); }, [selectedGrooves]);
+  useEffect(() => { localStorage.setItem('noor-selected-intents', JSON.stringify(selectedIntents)); }, [selectedIntents]);
   useEffect(() => { localStorage.setItem('noor-emotion-name', dialogEmotionName); }, [dialogEmotionName]);
   useEffect(() => { localStorage.setItem('noor-dialect-id', dialogDialectId); }, [dialogDialectId]);
   useEffect(() => { localStorage.setItem('noor-rating', dialogRating); }, [dialogRating]);
@@ -454,10 +530,282 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
   useEffect(() => { localStorage.setItem('noor-epic-level', dialogEpicLevel.toString()); }, [dialogEpicLevel]);
   useEffect(() => { localStorage.setItem('noor-silly-level', dialogSillyLevel.toString()); }, [dialogSillyLevel]);
   useEffect(() => { localStorage.setItem('noor-sapphic-level', dialogSapphicLevel.toString()); }, [dialogSapphicLevel]);
+  useEffect(() => { localStorage.setItem('noor-wildness-level', dialogWildnessLevel.toString()); }, [dialogWildnessLevel]);
   useEffect(() => { localStorage.setItem('noor-rhyme-id', dialogRhymeId); }, [dialogRhymeId]);
   useEffect(() => { localStorage.setItem('noor-musical-key', dialogMusicalKey); }, [dialogMusicalKey]);
   useEffect(() => { localStorage.setItem('noor-bpm', dialogBpm.toString()); }, [dialogBpm]);
   useEffect(() => { localStorage.setItem('noor-time-signature', dialogTimeSignature); }, [dialogTimeSignature]);
+
+  // Image analysis file upload handler
+  const submitImageToGeminiJob = (base64: string, mimeType: string, fileName: string) => {
+    setIsImageProcessing(false);
+    setImageError(null);
+    setLastAnalyzedImage(base64);
+    const apiKey = localStorage.getItem('noor-api-key') || '';
+    
+    const seriousnessRule = `
+3. SPECIFIC TOPIC SERIOUSNESS FORCE-SCALE:
+The user has set the seriousness indicator for this image to ${imageSeriousness}/10.
+As this scale increases towards 10, you MUST progressively reduce and eventually completely eliminate all default cozy bohemian cozy factors, pagan sisterly connections, sapphic themes, and archaic folk/gothic instruments.
+${imageSeriousness >= 7 ? `
+[CRITICAL SEVERE CONSTRAINTS: SERIOUSNESS IS HIGH: ${imageSeriousness}/10]:
+The seriousness level is set high. You MUST completely IGNORE and bypass ALL default bohemian tropes, pagan/gothic themes, sisterly connectivity, and sapphic romantic details. You MUST also completely ignore and ban folk instruments like Crwth, bagpipes, tagelharpa, bukkehorn, and kravik lyre. Any and all lyrics guidelines, mood tones, and instrumentation options must be strictly solemn, raw, classical, and highly dignified. Treat the visual as a deeply serious event or modern/historic tragedy. All sensual, silly, or playful elements are Strictly Forbidden (set "sapphicLevel", "sillyLevel", and "innuendoLevel" to EXACTLY 0). Select only classic and deeply evocative string (Cello, Violin, Viola, Piano) or woodwind/synth backup tracks.` : `
+Adjust the output composition/guidelines respectfully to fall between cozy pagan folk settings (when level is 0) and more serious classic focus (as level increases).`}`;
+
+    const jobId = addJob(
+      `📷 Image-to-Song Analysis: ${fileName}`,
+      'high',
+      `Analyze this image and generate inspiring song option parameters for the band "Noor".
+Noor is a Dutch indie-pop / gothic vocal band of four Pagan, Sapphic singers: Miranda, Annelies, Fannie, and Emma.
+
+CRITICAL INSTRUCTIONS:
+${seriousnessRule}
+
+1. SERIOUS EVENTS / TRAGEDY RULE:
+Analyze if the image is something serious involving real-world current events, political crises, active human conflicts, news headlines, modern tragedies, or sensitive historic events.
+If yes, you MUST set "sapphicLevel" to 0, "innuendoLevel" to 0, and ensure that the "guidelines" contain absolutely NO Sapphic, romantic, or sensual context or themes. Focus strictly on the emotional, historic, or natural gravity of the visual.
+
+2. INSTRUMENTS RULE:
+DO NOT default to the Crwth or Bagpipes as instruments unless the visual elements specifically represent them. Select proper instruments that genuinely fit the ambiance, colors, landscape, and tone of the image.
+- "selectedInstruments": Suitable instruments for the backing band (selected from standard instruments list like Classic Bowed Strings (Cello, Violin, Viola), Acoustic Plucked Strings (Acoustic Guitar, Lute, Harp), Woodwinds (Flute, Oboe, Clarinet), Percussion (Tambourine, Glockenspiel, Wind Chimes, Glass Harmonicas), Electronic & Modern (Electric Guitar, Bass Guitar, Synthesizer, Drum Machine, Mellotron, Theremin), or Norse/historic instruments (Tagelharpa, Bukkehorn, Kravik Lyre)). Multiple instruments are allowed.
+- "singerInstruments": Exact multiple instruments specifically for each of the four singers: "miranda", "annelies", "fannie", and "emma". Ensure these represent what they would play/perform on this track. Multiple instruments per singer are allowed.
+
+3. SLIDERS RULE:
+Do not assign genre styles. Instead, you must set the aesthetic slider levels (0 to 5) directly:
+- "epicLevel": set high (4-5) for high-scale, grand, sweeping landscapes, legendary, or powerful visual themes.
+- "wildnessLevel": set high (4-5) for highly strange, weird, surreal, chaotic, bizarre, or experimental compositions.
+- "sillyLevel": set high for playful, lighthearted, humorous elements (0 if serious).
+- "innuendoLevel": set high for seductive, intimate, or romantic tension.
+- "sapphicLevel": set high for romantic girl-love / Pagan sisterly connection (0 if current/serious events are shown, as outlined above!).
+
+Return only a valid JSON object matching this structure (no markdown delimiters, no comments, just raw JSON):
+{
+  "title": "A gorgeous song title inspired by the visual",
+  "imageDescription": "A rich and beautifully detailed description (at least 1-2 paragraphs) of the visual contents, colors, subjects, and unique details of this image, to be used as primary inspiration for the song's back-story and singer interviews.",
+  "guidelines": "Detailed lyrics guidelines and prompts (at least 3-4 paragraphs) describing creative directions, imagery, lyrical themes, nature elements, physical sensations to build on.",
+  "mood": "E.g., Joyful, Melancholy, Seductive, Mystical, Airy, Dramatic, or Energetic",
+  "tempo": 110,
+  "keySignature": "E.g. E Minor, C Major",
+  "selectedInstruments": ["Synthesizer", "Cello"],
+  "singerInstruments": {
+    "miranda": ["Ethereal & Airy", "Flute"],
+    "annelies": ["Cello", "Viola"],
+    "fannie": ["Violin", "Acoustic Guitar"],
+    "emma": ["Harp", "Glockenspiel"]
+  },
+  "epicLevel": 4,
+  "wildnessLevel": 2,
+  "sillyLevel": 0,
+  "innuendoLevel": 1,
+  "sapphicLevel": 3
+}
+`,
+      apiKey,
+      undefined,
+      `You are a creative mastermind assistant for Noor, a Dutch indie-pop/gothic vocal band of four Pagan, Sapphic singers. Analyze the image and extract direct musical properties and themes in JSON format.`,
+      base64,
+      mimeType
+    );
+    
+    setActiveAnalysisJobId(jobId);
+  };
+
+  const handleImageAnalysis = (file: File) => {
+    setIsImageProcessing(true);
+    setImageError(null);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      submitImageToGeminiJob(base64, file.type || 'image/jpeg', file.name);
+    };
+    reader.onerror = () => {
+      setImageError("Failed to read local image file.");
+      setIsImageProcessing(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageUrlAnalysis = (url: string) => {
+    setIsImageProcessing(true);
+    setImageError(null);
+
+    if (url.startsWith('data:image/')) {
+      const mime = url.split(';')[0]?.replace('data:', '') || 'image/jpeg';
+      submitImageToGeminiJob(url, mime, 'pasted_image.png');
+      return;
+    }
+
+    const img = document.createElement('img');
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          const base64 = canvas.toDataURL('image/jpeg');
+          submitImageToGeminiJob(base64, 'image/jpeg', 'web_image.jpg');
+        } else {
+          throw new Error("Canvas context construction failed.");
+        }
+      } catch (err) {
+        console.error(err);
+        setImageError("Unable to load web image due to CORS. Try copying the actual image, or save and drag & drop.");
+        setIsImageProcessing(false);
+      }
+    };
+    img.onerror = () => {
+      setImageError("Failed to load image from URL. Try transferring as a file or direct copy-paste.");
+      setIsImageProcessing(false);
+    };
+    img.src = url;
+  };
+
+  // Listen for Image-to-Song analysis job completion
+  useEffect(() => {
+    if (!activeAnalysisJobId) return;
+    const ourJob = jobs.find(j => j.id === activeAnalysisJobId);
+    if (ourJob) {
+      if (ourJob.status === 'done') {
+        const result = ourJob.result;
+        if (result && typeof result === 'object') {
+          // Suggested Song Title
+          if (result.title) {
+            setSuggestedTitle(result.title);
+          }
+          // Image description mapping
+          if (result.imageDescription) {
+            setImageDescription(result.imageDescription);
+          }
+          // Lyrics Guidelines & Prompts
+          if (result.guidelines) {
+            setInstructions(result.guidelines);
+          }
+          // Key signature check and map
+          if (result.keySignature) {
+            const keyToMatch = result.keySignature.toString().toLowerCase();
+            const matchedKey = MUSICAL_KEYS.find(k => k.toLowerCase() === keyToMatch || k.toLowerCase().replace(/\s+/g, '') === keyToMatch.replace(/\s+/g, ''));
+            if (matchedKey) {
+              setDialogMusicalKey(matchedKey);
+              setEnabledTabs(prev => ({ ...prev, musicalKey: true }));
+            }
+          }
+          // Beats Per Minute check
+          if (result.tempo) {
+            const parsedBpm = parseInt(result.tempo, 10);
+            if (!isNaN(parsedBpm) && parsedBpm >= 40 && parsedBpm <= 260) {
+              setDialogBpm(parsedBpm);
+              setEnabledTabs(prev => ({ ...prev, beatsPerMinute: true }));
+            }
+          }
+          // Song Emotion check
+          if (result.mood) {
+            const moodStr = result.mood.toString().toLowerCase();
+            const matchedMood = SONG_EMOTIONS.find(e => e.name.toLowerCase() === moodStr || e.id.toLowerCase() === moodStr);
+            if (matchedMood) {
+              setDialogEmotionName(matchedMood.name);
+              setEnabledTabs(prev => ({ ...prev, emotion: true }));
+            } else {
+              // Capitalize first letter as fallback
+              const formattedMood = result.mood.toString().charAt(0).toUpperCase() + result.mood.toString().slice(1);
+              setDialogEmotionName(formattedMood);
+              setEnabledTabs(prev => ({ ...prev, emotion: true }));
+            }
+          }
+          // Instrument map
+          if (result.selectedInstruments && Array.isArray(result.selectedInstruments)) {
+            const matchedInsts: string[] = [];
+            result.selectedInstruments.forEach((rawInst: any) => {
+              const cleanedName = rawInst.toString().trim().toLowerCase();
+              const found = SINGLE_SINGER_INSTRUMENTS.find(i => i.name.toLowerCase() === cleanedName);
+              if (found) {
+                matchedInsts.push(found.name);
+              }
+            });
+            if (matchedInsts.length > 0) {
+              setTempSelectedInstruments(matchedInsts);
+              setEnabledTabs(prev => ({ ...prev, instruments: true }));
+            }
+          }
+          // Singer specific instruments mapping
+          if (result.singerInstruments && typeof result.singerInstruments === 'object') {
+            const updatedSingInsts = { ...singerInstruments };
+            let hasSingInstChanges = false;
+            
+            const singerKeys = ['miranda', 'annelies', 'fannie', 'emma'];
+            singerKeys.forEach(singerId => {
+              const rawList = (result.singerInstruments as any)[singerId];
+              if (rawList && Array.isArray(rawList)) {
+                const matchedList: string[] = [];
+                rawList.forEach((rawInst: any) => {
+                  const cleanedName = rawInst.toString().trim().toLowerCase();
+                  const found = SINGLE_SINGER_INSTRUMENTS.find(i => i.name.toLowerCase() === cleanedName);
+                  if (found) {
+                    matchedList.push(found.name);
+                  }
+                });
+                updatedSingInsts[singerId] = matchedList;
+                hasSingInstChanges = true;
+              }
+            });
+            
+            if (hasSingInstChanges) {
+              setSingerInstruments(updatedSingInsts);
+              setEnabledTabs(prev => ({ ...prev, singerInstruments: true, singers: true }));
+            }
+          }
+          // Epicness Level mapping
+          if (result.epicLevel !== undefined) {
+            const levelVal = Math.max(0, Math.min(5, Math.round(Number(result.epicLevel))));
+            if (!isNaN(levelVal)) {
+              setDialogEpicLevel(levelVal);
+              setEnabledTabs(prev => ({ ...prev, epicLevel: true }));
+            }
+          }
+          // Wildness/Weirdness Level mapping
+          if (result.wildnessLevel !== undefined) {
+            const levelVal = Math.max(0, Math.min(5, Math.round(Number(result.wildnessLevel))));
+            if (!isNaN(levelVal)) {
+              setDialogWildnessLevel(levelVal);
+              setEnabledTabs(prev => ({ ...prev, wildnessLevel: true }));
+            }
+          }
+          // Silly Level mapping
+          if (result.sillyLevel !== undefined) {
+            const levelVal = Math.max(0, Math.min(5, Math.round(Number(result.sillyLevel))));
+            if (!isNaN(levelVal)) {
+              setDialogSillyLevel(levelVal);
+              setEnabledTabs(prev => ({ ...prev, sillyLevel: true }));
+            }
+          }
+          // Innuendo Level mapping
+          if (result.innuendoLevel !== undefined) {
+            const levelVal = Math.max(0, Math.min(5, Math.round(Number(result.innuendoLevel))));
+            if (!isNaN(levelVal)) {
+              setDialogInnuendoLevel(levelVal);
+              setEnabledTabs(prev => ({ ...prev, innuendoLevel: true }));
+            }
+          }
+          // Sapphic Level mapping
+          if (result.sapphicLevel !== undefined) {
+            const levelVal = Math.max(0, Math.min(5, Math.round(Number(result.sapphicLevel))));
+            if (!isNaN(levelVal)) {
+              setDialogSapphicLevel(levelVal);
+              setEnabledTabs(prev => ({ ...prev, sapphicLevel: true }));
+            }
+          }
+          // Disable styles/genres selection (as we rely on epic/weirdness sliders instead)
+          setTempSelectedStyles([]);
+          setEnabledTabs(prev => ({ ...prev, styles: false }));
+        }
+        setActiveAnalysisJobId(null);
+      } else if (ourJob.status === 'failed') {
+        setActiveAnalysisJobId(null);
+      }
+    }
+  }, [jobs, activeAnalysisJobId]);
 
   // Sync prop changes directly
   useEffect(() => {
@@ -471,6 +819,9 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
       const savedGrooves = localStorage.getItem('noor-selected-grooves');
       setSelectedGrooves(savedGrooves ? JSON.parse(savedGrooves) : []);
 
+      const savedIntents = localStorage.getItem('noor-selected-intents');
+      setSelectedIntents(savedIntents ? JSON.parse(savedIntents) : []);
+
       const savedEmotion = localStorage.getItem('noor-emotion-name');
       setDialogEmotionName(savedEmotion || 'Joyful');
 
@@ -479,6 +830,12 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
 
       const savedInstructions = localStorage.getItem('noor-instructions');
       setInstructions(savedInstructions || '');
+
+      const savedSuggestedTitle = localStorage.getItem('noor-suggested-title');
+      setSuggestedTitle(savedSuggestedTitle || '');
+
+      const savedExactTitle = localStorage.getItem('noor-exact-title');
+      setExactTitle(savedExactTitle === 'true');
 
       const savedChildVoice = localStorage.getItem('noor-child-voice');
       setDialogChildVoice(savedChildVoice === 'true');
@@ -503,6 +860,12 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
 
       const savedSilly = localStorage.getItem('noor-silly-level');
       setDialogSillyLevel(savedSilly ? parseInt(savedSilly, 10) : currentSillyLevel || 0);
+
+      const savedSapphic = localStorage.getItem('noor-sapphic-level');
+      setDialogSapphicLevel(savedSapphic ? parseInt(savedSapphic, 10) : currentSapphicLevel || 0);
+
+      const savedWildness = localStorage.getItem('noor-wildness-level');
+      setDialogWildnessLevel(savedWildness ? parseInt(savedWildness, 10) : currentWildnessLevel || 0);
 
       const savedRhyme = localStorage.getItem('noor-rhyme-id');
       setDialogRhymeId(savedRhyme || currentRhymeId || 'perfect');
@@ -531,21 +894,30 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
       const savedSingerPartnerUps = localStorage.getItem('noor-singer-partner-ups');
       setSingerPartnerUps(savedSingerPartnerUps ? JSON.parse(savedSingerPartnerUps) : (initialSingerPartnerUps || { miranda: false, annelies: false, fannie: false, emma: false }));
 
+      const savedSingerNationalities = localStorage.getItem('noor-singer-nationalities');
+      setSingerNationalities(savedSingerNationalities ? JSON.parse(savedSingerNationalities) : (initialSingerNationalities || { miranda: '', annelies: '', fannie: '', emma: '' }));
+
       const savedAllowFastBpm = localStorage.getItem('noor-allow-fast-bpm');
       setAllowFastBpm(savedAllowFastBpm !== null ? savedAllowFastBpm === 'true' : false);
 
       setTempSelectedInstruments([...selectedInstruments]);
       setTempSelectedStyles([...selectedStyles]);
     }
-  }, [isOpen, currentDialectId, currentRating, selectedInstruments, selectedStyles, selfReflect, currentInnuendoLevel, currentEpicLevel, currentRhymeId, currentSillyLevel, currentMusicalKey, currentBpm, currentTimeSignature, initialSingerChildVoices, initialSingerEmotions, initialSingerPrompts, initialSingerInstruments, initialSingerPartnerUps]);
+  }, [isOpen, currentDialectId, currentRating, selectedInstruments, selectedStyles, selfReflect, currentInnuendoLevel, currentEpicLevel, currentRhymeId, currentSillyLevel, currentSapphicLevel, currentWildnessLevel, currentMusicalKey, currentBpm, currentTimeSignature, initialSingerChildVoices, initialSingerEmotions, initialSingerPrompts, initialSingerInstruments, initialSingerPartnerUps, initialSingerNationalities]);
 
   // Clear parameter triggers
   const handleClearAllOptions = () => {
     setInstructions('');
+    setImageDescription('');
+    setImageSeriousness(0);
+    setLastAnalyzedImage(null);
     setMusicInspiration('');
+    setSuggestedTitle('');
+    setExactTitle(false);
     setDialogDialectId('');
     setDialogRating('PG');
     setSelectedGrooves([]);
+    setSelectedIntents([]);
     setDialogEmotionName('Joyful');
     setTempSelectedInstruments([]);
     setTempSelectedStyles([]);
@@ -567,11 +939,13 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
     setSingerPrompts({ miranda: '', annelies: '', fannie: '', emma: '' });
     setSingerInstruments({ miranda: [], annelies: [], fannie: [], emma: [] });
     setSingerPartnerUps({ miranda: false, annelies: false, fannie: false, emma: false });
+    setSingerNationalities({ miranda: '', annelies: '', fannie: '', emma: '' });
     setAllowFastBpm(false);
 
     // Also disable all tabs
     setEnabledTabs({
       prompt: true,
+      intentEnergy: false,
       accent: false,
       emotion: false,
       styles: false,
@@ -600,6 +974,148 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
     }
   };
 
+  // Option count helper functions to display feedback of selected options/configurations
+  const getTabSelectionCount = (tabId: TabId): number => {
+    if (tabId === 'prompt') {
+      let count = 0;
+      if (suggestedTitle && suggestedTitle.trim().length > 0) count++;
+      if (instructions && instructions.trim().length > 0) count++;
+      if (musicInspiration && musicInspiration.trim().length > 0) count++;
+      if (lastAnalyzedImage) count++;
+      return count;
+    }
+    if (tabId === 'intentEnergy') {
+      return enabledTabs.intentEnergy ? selectedIntents.length : 0;
+    }
+    if (tabId === 'vocalAccentTone') {
+      let count = 0;
+      if (enabledTabs.accent) {
+        const parsed = dialogDialectId ? dialogDialectId.split(',').filter(Boolean) : [];
+        count += parsed.length;
+      }
+      if (enabledTabs.emotion) {
+        count += 1; // Global emotion
+        const customSings = Object.values(singerEmotions).filter(v => v !== 'Joyful').length;
+        count += customSings;
+      }
+      return count;
+    }
+    if (tabId === 'composer') {
+      let count = 0;
+      if (enabledTabs.styles) {
+        count += tempSelectedStyles.length;
+        count += selectedGrooves.length;
+      }
+      if (enabledTabs.instruments) {
+        count += tempSelectedInstruments.length;
+      }
+      return count;
+    }
+    if (tabId === 'singers') {
+      let count = 0;
+      if (enabledTabs.singers) {
+        count += Object.values(singerPrompts).filter(p => typeof p === 'string' && p.trim().length > 0).length;
+        count += Object.values(singerNationalities).filter(n => typeof n === 'string' && n.trim().length > 0).length;
+      }
+      if (enabledTabs.childVoice) {
+        count += Object.values(singerChildVoices).filter(Boolean).length;
+      }
+      if (enabledTabs.partnerUp) {
+        count += Object.values(singerPartnerUps).filter(Boolean).length;
+      }
+      if (enabledTabs.singerInstruments) {
+        count += Object.values(singerInstruments).reduce((sum, list) => sum + (list ? list.length : 0), 0);
+      }
+      return count;
+    }
+    if (tabId === 'musicTheory') {
+      let count = 0;
+      if (enabledTabs.musicalKey) count++;
+      if (enabledTabs.beatsPerMinute) count++;
+      if (enabledTabs.timeSignature) count++;
+      return count;
+    }
+    if (tabId === 'structure') {
+      let count = 0;
+      if (enabledTabs.intro && dialogIntroConfig.enabled) {
+        count += 1 + (dialogIntroConfig.instruments?.length || 0);
+      }
+      if (enabledTabs.outro && dialogOutroConfig.enabled) {
+        count += 1 + (dialogOutroConfig.instruments?.length || 0);
+      }
+      if (enabledTabs.sfx) {
+        count += selectedSfx.length;
+      }
+      return count;
+    }
+    if (tabId === 'poetics') {
+      let count = 0;
+      if (enabledTabs.rhymeScheme && dialogRhymeId) count++;
+      if (enabledTabs.lyricsReversal && dialogReverseLyrics) count++;
+      if (enabledTabs.selfReflecting && dialogSelfReflect) count++;
+      if (enabledTabs.rating && dialogRating) count++;
+      return count;
+    }
+    if (tabId === 'sliders') {
+      let count = 0;
+      if (enabledTabs.sillyLevel && dialogSillyLevel > 0) count++;
+      if (enabledTabs.innuendoLevel && dialogInnuendoLevel > 0) count++;
+      if (enabledTabs.epicLevel && dialogEpicLevel > 0) count++;
+      if (enabledTabs.sapphicLevel && dialogSapphicLevel > 0) count++;
+      if (enabledTabs.wildnessLevel && dialogWildnessLevel > 0) count++;
+      return count;
+    }
+    return 0;
+  };
+
+  const getChildSelectionCount = (tabId: TabId, subId: string): number => {
+    if (tabId === 'prompt') {
+      if (subId === 'imageToSong') return lastAnalyzedImage ? 1 : 0;
+      if (subId === 'suggestedTitle') return (suggestedTitle && suggestedTitle.trim().length > 0) ? 1 : 0;
+      if (subId === 'lyrics') return (instructions && instructions.trim().length > 0) ? 1 : 0;
+      if (subId === 'artistImpression') return (musicInspiration && musicInspiration.trim().length > 0) ? 1 : 0;
+    }
+    if (tabId === 'vocalAccentTone') {
+      if (subId === 'accent') return enabledTabs.accent ? (dialogDialectId ? dialogDialectId.split(',').filter(Boolean).length : 0) : 0;
+      if (subId === 'emotion') return enabledTabs.emotion ? 1 + Object.values(singerEmotions).filter(v => v !== 'Joyful').length : 0;
+    }
+    if (tabId === 'composer') {
+      if (subId === 'styles') return enabledTabs.styles ? (tempSelectedStyles.length + selectedGrooves.length) : 0;
+      if (subId === 'instruments') return enabledTabs.instruments ? tempSelectedInstruments.length : 0;
+    }
+    if (tabId === 'singers') {
+      if (subId === 'casting') return enabledTabs.singers ? Object.values(singerPrompts).filter(p => p.trim().length > 0).length : 0;
+      if (subId === 'profile') return enabledTabs.childVoice ? Object.values(singerChildVoices).filter(Boolean).length : 0;
+      if (subId === 'instruments') return enabledTabs.singerInstruments ? Object.values(singerInstruments).reduce((sum, list) => sum + (list ? list.length : 0), 0) : 0;
+      if (subId === 'partnerUp') return enabledTabs.partnerUp ? Object.values(singerPartnerUps).filter(Boolean).length : 0;
+      if (subId === 'nationalities') return enabledTabs.singers ? Object.values(singerNationalities).filter(n => n.trim().length > 0).length : 0;
+    }
+    if (tabId === 'musicTheory') {
+      if (subId === 'bpm') return enabledTabs.beatsPerMinute ? 1 : 0;
+      if (subId === 'key') return enabledTabs.musicalKey ? 1 : 0;
+      if (subId === 'timeSig') return enabledTabs.timeSignature ? 1 : 0;
+    }
+    if (tabId === 'structure') {
+      if (subId === 'intro') return (enabledTabs.intro && dialogIntroConfig.enabled) ? 1 + (dialogIntroConfig.instruments?.length || 0) : 0;
+      if (subId === 'outro') return (enabledTabs.outro && dialogOutroConfig.enabled) ? 1 + (dialogOutroConfig.instruments?.length || 0) : 0;
+      if (subId === 'sfx') return enabledTabs.sfx ? selectedSfx.length : 0;
+    }
+    if (tabId === 'poetics') {
+      if (subId === 'rhyme') return enabledTabs.rhymeScheme ? 1 : 0;
+      if (subId === 'reversal') return (enabledTabs.lyricsReversal && dialogReverseLyrics) ? 1 : 0;
+      if (subId === 'reflection') return (enabledTabs.selfReflecting && dialogSelfReflect) ? 1 : 0;
+      if (subId === 'safety') return enabledTabs.rating ? 1 : 0;
+    }
+    if (tabId === 'sliders') {
+      if (subId === 'silly') return (enabledTabs.sillyLevel && dialogSillyLevel > 0) ? 1 : 0;
+      if (subId === 'innuendo') return (enabledTabs.innuendoLevel && dialogInnuendoLevel > 0) ? 1 : 0;
+      if (subId === 'epic') return (enabledTabs.epicLevel && dialogEpicLevel > 0) ? 1 : 0;
+      if (subId === 'sapphic') return (enabledTabs.sapphicLevel && dialogSapphicLevel > 0) ? 1 : 0;
+      if (subId === 'wildness') return (enabledTabs.wildnessLevel && dialogWildnessLevel > 0) ? 1 : 0;
+    }
+    return 0;
+  };
+
   const handleConfirmAction = () => {
     setShowSummaryModal(true);
   };
@@ -624,6 +1140,7 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
       enabledTabs.rhymeScheme ? dialogRhymeId : 'perfect',
       enabledTabs.sillyLevel ? dialogSillyLevel : 0,
       enabledTabs.sapphicLevel ? dialogSapphicLevel : 0,
+      enabledTabs.wildnessLevel ? dialogWildnessLevel : 0,
       enabledTabs.musicalKey ? dialogMusicalKey : 'C Major',
       enabledTabs.beatsPerMinute ? dialogBpm : 120,
       enabledTabs.timeSignature ? dialogTimeSignature : '4/4',
@@ -632,7 +1149,12 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
       enabledTabs.singers ? singerPrompts : { miranda: '', annelies: '', fannie: '', emma: '' },
       enabledTabs.singerInstruments ? singerInstruments : { miranda: [], annelies: [], fannie: [], emma: [] },
       enabledTabs.partnerUp ? singerPartnerUps : { miranda: false, annelies: false, fannie: false, emma: false },
-      enabledTabs
+      enabledTabs.singers ? singerNationalities : { miranda: '', annelies: '', fannie: '', emma: '' },
+      suggestedTitle,
+      enabledTabs,
+      exactTitle,
+      enabledTabs.intentEnergy ? selectedIntents : [],
+      lastAnalyzedImage ? imageDescription : ''
     );
     setShowSummaryModal(false);
     onClose();
@@ -651,6 +1173,7 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
     const epicStepObj = enabledTabs.epicLevel ? getEpicStep(dialogEpicLevel) : null;
     const sillyStepObj = enabledTabs.sillyLevel ? getSillyStep(dialogSillyLevel) : null;
     const sapphicStepObj = enabledTabs.sapphicLevel ? getSapphicStep(dialogSapphicLevel) : null;
+    const wildnessStepObj = enabledTabs.wildnessLevel ? getWildnessStep(dialogWildnessLevel) : null;
 
     return (
       <div className="flex flex-col h-[74vh] overflow-hidden p-6 font-sans text-lavender-text font-medium select-none bg-black/40 rounded-lg">
@@ -749,8 +1272,24 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
                 </div>
               )}
 
-              {(!enabledTabs.styles && !enabledTabs.instruments && !enabledTabs.sfx) && (
-                <p className="text-sm italic text-lavender-text/40">No instruments, backing tracks, sound effects, or styles enabled.</p>
+              {enabledTabs.intentEnergy && selectedIntents.length > 0 && (
+                <div>
+                  <span className="text-xs font-bold text-lavender-accent/60 uppercase tracking-widest block mb-0.5">Focus Psyche / Intent & Energy:</span>
+                  <div className="flex flex-wrap gap-1.5 py-1">
+                    {selectedIntents.map((id, idx) => {
+                      const spec = INTENT_ENERGY_GROUPS_LOOKUP[id];
+                      return (
+                        <span key={idx} className="px-2.5 py-1 bg-sky-500/10 border border-sky-500/30 text-sky-300 rounded text-sm font-black">
+                          {spec ? spec.name : id}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {(!enabledTabs.styles && !enabledTabs.instruments && !enabledTabs.sfx && !enabledTabs.intentEnergy) && (
+                <p className="text-sm italic text-lavender-text/40">No instruments, backing tracks, sound effects, styles, or intent & energy settings enabled.</p>
               )}
             </div>
 
@@ -813,8 +1352,62 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
                 </div>
               )}
 
-              {(!enabledTabs.accent && !enabledTabs.emotion && !enabledTabs.childVoice && !enabledTabs.partnerUp) && (
-                <p className="text-sm italic text-lavender-text/40">No regional dialects, emotions, kid voice, or partnering casting rules active.</p>
+              {enabledTabs.singers && (
+                <div>
+                  <span className="text-xs font-bold text-lavender-accent/60 uppercase tracking-widest block mb-1">Casting Prompts & Guidelines:</span>
+                  <div className="mt-1 pl-3 border-l-2 border-lavender-accent/30 space-y-1">
+                    {Object.entries(singerPrompts).map(([singer, prompt]) => prompt.trim() && (
+                      <div key={singer} className="text-xs">
+                        <span className="capitalize text-lavender-text/60 font-black">{singer}: </span>
+                        <span className="text-white">"{prompt}"</span>
+                      </div>
+                    ))}
+                    {!Object.values(singerPrompts).some(p => p.trim()) && (
+                      <span className="text-xs italic text-lavender-text/40">No custom casting prompts specified.</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {enabledTabs.singers && (
+                <div>
+                  <span className="text-xs font-bold text-lavender-accent/60 uppercase tracking-widest block mb-1">Singer National Cultures:</span>
+                  <div className="mt-1 pl-3 border-l-2 border-lavender-accent/30 space-y-1">
+                    {Object.entries(singerNationalities).map(([singer, natId]) => {
+                      const nat = findNationalityById(natId);
+                      return nat && (
+                        <div key={singer} className="text-xs">
+                          <span className="capitalize text-lavender-text/60 font-black">{singer}: </span>
+                          <span className="text-white font-extrabold">{nat.name}</span>
+                        </div>
+                      );
+                    })}
+                    {!Object.values(singerNationalities).some(v => !!v) && (
+                      <span className="text-xs italic text-lavender-text/40">No custom national cultures assigned.</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {enabledTabs.singerInstruments && (
+                <div>
+                  <span className="text-xs font-bold text-lavender-accent/60 uppercase tracking-widest block mb-1">Singer Solo Instruments:</span>
+                  <div className="mt-1 pl-3 border-l-2 border-lavender-accent/30 space-y-1">
+                    {Object.entries(singerInstruments).map(([singer, insts]) => insts.length > 0 && (
+                      <div key={singer} className="text-xs flex justify-between">
+                        <span className="capitalize text-lavender-text/60 font-black">{singer}:</span>
+                        <span className="text-white font-extrabold">{insts.join(', ')}</span>
+                      </div>
+                    ))}
+                    {!Object.values(singerInstruments).some(insts => insts.length > 0) && (
+                      <span className="text-xs italic text-lavender-text/40">No solo instruments assigned.</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {(!enabledTabs.accent && !enabledTabs.emotion && !enabledTabs.childVoice && !enabledTabs.partnerUp && !enabledTabs.singers && !enabledTabs.singerInstruments) && (
+                <p className="text-sm italic text-lavender-text/40">No regional dialects, emotions, kid voice, partnering, singer prompts, or singer instruments active.</p>
               )}
             </div>
           </div>
@@ -897,6 +1490,12 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
                     <span className="text-sm font-black text-lavender-accent capitalize">{sapphicStepObj.label}</span>
                   </div>
                 )}
+                {enabledTabs.wildnessLevel && wildnessStepObj && (
+                  <div>
+                    <span className="text-xs font-bold text-lavender-text/50 uppercase block">Wildness & Chaos</span>
+                    <span className="text-sm font-black text-lavender-accent capitalize">{wildnessStepObj.label}</span>
+                  </div>
+                )}
                 {enabledTabs.rhymeScheme && rhymeName && (
                   <div>
                     <span className="text-xs font-bold text-lavender-text/50 uppercase block">Rhyme Poetic Rule</span>
@@ -905,7 +1504,7 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
                 )}
               </div>
 
-              <div className="border-t border-lavender-border/20 pt-2 text-sm grid grid-cols-2 gap-2">
+              <div className="border-t border-lavender-border/20 pt-2 text-sm grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <span className="text-xs font-bold text-lavender-text/50 uppercase block">Active Safety Rating</span>
                   <span className="text-sm font-bold text-white capitalize">{enabledTabs.rating ? dialogRating : "PG Defaults"}</span>
@@ -916,6 +1515,14 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
                     {enabledTabs.selfReflecting ? (dialogSelfReflect ? "Allowed" : "Blocked") : "PG Default (Yes)"}
                   </span>
                 </div>
+                {enabledTabs.lyricsReversal && (
+                  <div>
+                    <span className="text-xs font-bold text-lavender-text/50 uppercase block">Phonetic Mirror Reversal</span>
+                    <span className={`text-sm font-bold ${dialogReverseLyrics ? 'text-green-400' : 'text-red-400'}`}>
+                      {dialogReverseLyrics ? "Active (Subliminal Mirroring)" : "Disabled"}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -931,15 +1538,24 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
   const [accentSearch, setAccentSearch] = useState('');
   const accentParsedIds = useMemo(() => dialogDialectId ? dialogDialectId.split(',').filter(Boolean) : [], [dialogDialectId]);
   
-  const activeAccentGroup = LANGUAGE_GROUPS.find(g => g.id === accentGroupId) || LANGUAGE_GROUPS[0];
+  const sortedLanguageGroups = useMemo(() => {
+    return [...LANGUAGE_GROUPS]
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(group => ({
+        ...group,
+        dialects: [...group.dialects].sort((a, b) => a.name.localeCompare(b.name))
+      }));
+  }, []);
+
+  const activeAccentGroup = sortedLanguageGroups.find(g => g.id === accentGroupId) || sortedLanguageGroups[0];
   const filteredAccents = useMemo(() => {
     if (accentSearch.trim() !== '') {
-      return LANGUAGE_GROUPS.flatMap(g => g.dialects).filter(d => 
+      return sortedLanguageGroups.flatMap(g => g.dialects).filter(d => 
         d.name.toLowerCase().includes(accentSearch.toLowerCase()) || d.description.toLowerCase().includes(accentSearch.toLowerCase())
       );
     }
     return activeAccentGroup?.dialects || [];
-  }, [accentSearch, activeAccentGroup]);
+  }, [accentSearch, activeAccentGroup, sortedLanguageGroups]);
 
   const handleToggleAccent = (dialectId: string) => {
     if (accentParsedIds.includes(dialectId)) {
@@ -1139,10 +1755,12 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
   const [sfxGroupId, setSfxGroupId] = useState('');
   const [sfxSearch, setSfxSearch] = useState('');
   const processedSfxGroups = useMemo(() => {
-    return [...SOUND_EFFECTS].map(group => ({
-      ...group,
-      effects: [...group.effects].sort((a, b) => a.name.localeCompare(b.name))
-    }));
+    return [...SOUND_EFFECTS]
+      .sort((a, b) => a.type.localeCompare(b.type))
+      .map(group => ({
+        ...group,
+        effects: [...group.effects].sort((a, b) => a.name.localeCompare(b.name))
+      }));
   }, []);
 
   useEffect(() => {
@@ -1169,19 +1787,15 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
 
 
   // 6. INTRO / OUTRO SEGMENTS INSTRUMENT CATS
-  const INTRO_OUTRO_INSTRUMENTS = [
-    { category: "Strings & Harps", instruments: ["Crwth", "Violin", "Cello", "Acoustic Guitar", "Harp", "Lute", "Viola", "Mandolin", "Double Bass", "Guitarrón", "Balalaika", "Bouzouki", "Banjo", "Sitar", "Shamisen", "Guzheng"] },
-    { category: "Brass", instruments: ["Trumpet", "Trombone", "French Horn", "Tuba", "Bugle", "Cornet", "Euphonium", "Mellophone", "Sousaphone", "Sackbut", "Shofar", "Didgeridoo"] },
-    { category: "Bagpipes & Reeds", instruments: ["Bagpipes", "Uilleann Pipes", "Accordion", "Harmonica", "Clarinet", "Great Highland Bagpipe", "Northumbrian Smallpipes", "Sheng", "Kena", "Oboe", "English Horn", "Bassoon"] },
-    { category: "Drums & Percussion", instruments: ["Drums", "Snare Drum", "Bass Drum", "Timpani", "Hand Drums", "Tambourine", "Taiko", "Cajón", "Congas", "Bongos", "Djembe", "Tabla", "Darabuka", "Frame Drum", "Bodhrán", "Shakers"] },
-    { category: "Woodwinds & Keys", instruments: ["Flute", "Recorder", "Piano", "Harpsichord", "Synthesizer", "Organ", "Fife", "Ocarina", "Pan Flute", "Xiao", "Shakuhachi", "Ney", "Celesta", "Clavinet", "Mellotron"] },
-    { category: "Ethnic & Folk Winds", instruments: ["Kaval", "Surna", "Bawu", "Native American Flute", "Duduk", "Tin Whistle", "Fujara", "Mijwiz", "Siku"] },
-    { category: "Modern & Cinematic FX", instruments: ["Ambient Drone Synth", "Sub-Bass Drop", "Cinematic Strings Rise", "Analog White Noise", "808 Sub Boom", "Glitch Plucks", "Granular Textures", "Tape Lo-fi Crackle"] },
-    { category: "Orchestral Mallets", instruments: ["Marimba", "Xylophone", "Vibraphone", "Glockenspiel", "Tubular Bells", "Crotales", "Steel Drums", "Kalimba", "Music Box"] }
-  ];
+  const INTRO_OUTRO_INSTRUMENTS = useMemo(() => {
+    return INSTRUMENTS.map(g => ({
+      category: g.type,
+      instruments: g.instruments.map(i => i.name)
+    }));
+  }, []);
 
-  const [introSfxGroup, setIntroSfxGroup] = useState('Strings & Harps');
-  const [outroSfxGroup, setOutroSfxGroup] = useState('Strings & Harps');
+  const [introSfxGroup, setIntroSfxGroup] = useState(() => INSTRUMENTS[0]?.type || 'Acoustic Plucked Strings');
+  const [outroSfxGroup, setOutroSfxGroup] = useState(() => INSTRUMENTS[0]?.type || 'Acoustic Plucked Strings');
 
 
   // 7. Rhyme Scheme Groups
@@ -1228,7 +1842,7 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
     };
 
     const maybeOverlayDisabled = (children: React.ReactNode, id: string) => {
-      if (id === 'prompt') return children;
+      if (id === 'prompt' || id === 'suggestedTitle' || id === 'artistImpression') return children;
       const isEnabled = enabledTabs[id];
       if (!isEnabled) {
         return (
@@ -1259,40 +1873,608 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
     switch (activeTabId) {
       case 'prompt':
         return (
-          <div className="flex flex-col gap-4 h-full">
-            <div className="flex flex-col gap-1 b-2">
-              <h3 className="text-sm font-extrabold text-lavender-accent uppercase tracking-widest flex items-center gap-1.5">
-                1. Lyrics Instructions & Prompt
-              </h3>
-              <p className="text-[11px] text-lavender-text/50 font-semibold italic">Topic, structure, prompt directives inside a custom single view. Always active.</p>
+          <div className="flex flex-col h-full text-lavender-text font-sans">
+            {/* Horizontal Sub-tabs for Lyrics Guidelines & Song Setup */}
+            <div className="flex bg-lavender-surface/35 border-b border-lavender-border/40 shrink-0 p-1 mb-3 rounded-lg overflow-x-auto select-none">
+              <button
+                type="button"
+                onClick={() => setPromptSubTab('imageToSong')}
+                className={`flex-1 py-1.5 px-3 text-xs font-black transition-all rounded-md cursor-pointer whitespace-nowrap min-w-[120px] text-center ${promptSubTab === 'imageToSong' ? 'bg-lavender-accent text-black font-extrabold shadow' : 'text-lavender-text/60 hover:text-lavender-text/90'}`}
+              >
+                📷 Image-to-Song Inspiration
+              </button>
+              <button
+                type="button"
+                onClick={() => setPromptSubTab('suggestedTitle')}
+                className={`flex-1 py-1.5 px-3 text-xs font-black transition-all rounded-md cursor-pointer whitespace-nowrap min-w-[120px] text-center ${promptSubTab === 'suggestedTitle' ? 'bg-lavender-accent text-black font-extrabold shadow' : 'text-lavender-text/60 hover:text-lavender-text/90'}`}
+              >
+                Suggested Song Title
+              </button>
+              <button
+                type="button"
+                onClick={() => setPromptSubTab('lyrics')}
+                className={`flex-1 py-1.5 px-3 text-xs font-black transition-all rounded-md cursor-pointer whitespace-nowrap min-w-[120px] text-center ${promptSubTab === 'lyrics' ? 'bg-lavender-accent text-black font-extrabold shadow' : 'text-lavender-text/60 hover:text-lavender-text/90'}`}
+              >
+                Lyrics Guidelines & Prompts
+              </button>
+              <button
+                type="button"
+                onClick={() => setPromptSubTab('artistImpression')}
+                className={`flex-1 py-1.5 px-3 text-xs font-black transition-all rounded-md cursor-pointer whitespace-nowrap min-w-[120px] text-center ${promptSubTab === 'artistImpression' ? 'bg-lavender-accent text-black font-extrabold shadow' : 'text-lavender-text/60 hover:text-lavender-text/90'}`}
+              >
+                Artist Impression & Ideas
+              </button>
             </div>
 
-            <div className="flex-1 flex flex-col gap-4 min-h-[40vh]">
-              <div className="flex-1 flex flex-col">
-                <span className="text-[10px] font-extrabold text-lavender-text/50 uppercase tracking-widest block mb-1">
-                  Lyrics Guidelines & Song Instructions
-                </span>
-                <textarea
-                  value={instructions}
-                  onChange={(e) => setInstructions(e.target.value)}
-                  placeholder="E.g. Compose an uplifting heavy-metal ballad about a software developer fixing memory leaks at 3:00 AM on a Friday night..."
-                  className="w-full flex-1 min-h-[22vh] p-3.5 bg-lavender-surface border border-lavender-border text-lavender-text text-xs focus:outline-none focus:border-lavender-accent rounded-lg font-bold placeholder:text-lavender-text/25 font-mono leading-relaxed"
-                />
-              </div>
+            {promptSubTab === 'imageToSong' && (
+              <div 
+                className="flex flex-col gap-4 h-full outline-none"
+                tabIndex={0}
+                onPaste={(e) => {
+                  const items = e.clipboardData?.items;
+                  if (!items) return;
+                  let parsed = false;
+                  for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+                    if (item.type.startsWith('image/')) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const file = item.getAsFile();
+                      if (file) {
+                        handleImageAnalysis(file);
+                        parsed = true;
+                        break;
+                      }
+                    }
+                  }
+                  if (!parsed) {
+                    const text = e.clipboardData.getData('text');
+                    if (text && (text.startsWith('http://') || text.startsWith('https://') || text.startsWith('data:image/'))) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleImageUrlAnalysis(text.trim());
+                    }
+                  }
+                }}
+              >
+                <div className="flex flex-col gap-1 shrink-0">
+                  <h3 className="text-sm font-extrabold text-lavender-accent uppercase tracking-widest flex items-center gap-1.5">
+                    📷 Image-to-Song Inspiration
+                  </h3>
+                  <p className="text-[11px] text-lavender-text/50 font-semibold italic">Drop or copy/paste (Ctrl+V) any image into this panel to let Gemini analyze it and instantly generate Noor's matching song metrics!</p>
+                </div>
 
-              <div className="shrink-0 flex flex-col gap-1">
-                <span className="text-[10px] font-extrabold text-lavender-text/50 uppercase tracking-widest block">
-                  Musical / Artist Inspiration Reference
-                </span>
-                <input
-                  type="text"
-                  value={musicInspiration}
-                  onChange={(e) => setMusicInspiration(e.target.value)}
-                  placeholder="E.g. Evanescence, Nightwish, Avenged Sevenfold, melodic symphonic metal keys"
-                  className="w-full bg-lavender-surface border border-lavender-border text-lavender-text rounded-lg py-2.5 px-3.5 text-xs focus:outline-none focus:border-lavender-accent font-bold placeholder:text-lavender-text/25 font-mono"
-                />
+                <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto w-full min-h-0 gap-4">
+                  <div 
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsDraggingOver(true);
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsDraggingOver(false);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsDraggingOver(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file && file.type.startsWith('image/')) {
+                        handleImageAnalysis(file);
+                      } else {
+                        // Check if it's dropped image HTML, or image URLs
+                        const html = e.dataTransfer.getData('text/html');
+                        let url = '';
+                        if (html) {
+                          const imgMatch = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+                          if (imgMatch) {
+                            url = imgMatch[1];
+                          }
+                        }
+                        if (!url) {
+                          url = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain') || '';
+                        }
+                        url = url.trim();
+                        if (url && (url.startsWith('http') || url.startsWith('data:image/'))) {
+                          handleImageUrlAnalysis(url);
+                        } else {
+                          setImageError("No valid image file or web image link was detected in your drop container.");
+                        }
+                      }
+                    }}
+                    className={`border-2 border-dashed rounded-2xl p-6 md:p-8 flex flex-col items-center justify-center text-center gap-4 transition-all duration-200 cursor-pointer relative ${
+                      isDraggingOver 
+                        ? 'border-lavender-accent bg-lavender-accent/10 scale-[1.01]' 
+                        : isImageProcessing
+                          ? 'border-lavender-accent/30 bg-lavender-surface/10'
+                          : 'bg-lavender-surface/10 border-lavender-border/40 hover:border-lavender-accent/60'
+                    }`}
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.onchange = (e: any) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleImageAnalysis(file);
+                        }
+                      };
+                      input.click();
+                    }}
+                  >
+                    {isImageProcessing ? (
+                      <div className="flex flex-col items-center gap-4 py-4 select-none">
+                        <div className="w-12 h-12 rounded-full border-2 border-lavender-accent/20 border-t-lavender-accent animate-spin flex items-center justify-center">
+                          <Image size={18} className="text-lavender-accent/80 animate-pulse" />
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-xs font-black text-lavender-accent uppercase tracking-widest block">Preparing image...</span>
+                          <p className="text-[10px] text-lavender-text/50 max-w-xs font-semibold leading-relaxed mx-auto italic">
+                            Reading image file or downloading image object. Preprocessing elements as standard workspace data...
+                          </p>
+                        </div>
+                      </div>
+                    ) : activeAnalysisJobId ? (
+                      <div className="flex flex-col items-center gap-4 py-4 select-none">
+                        <div className="w-12 h-12 rounded-full border-2 border-lavender-accent/20 border-t-lavender-accent animate-spin flex items-center justify-center">
+                          <Image size={18} className="text-lavender-accent/80 animate-pulse" />
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-xs font-black text-lavender-accent uppercase tracking-widest block">Gemini is Analyzing image...</span>
+                          <p className="text-[10px] text-lavender-text/50 max-w-xs font-semibold leading-relaxed mx-auto italic">
+                            Checking composition, colors, texture, and emotional energy. Translating image into musical scales, tempo beats, gothic styles, and Norse Pagan lyrics guidelines.
+                          </p>
+                        </div>
+                        {jobs.find(j => j.id === activeAnalysisJobId)?.status === 'pending' && (
+                          <div className="flex flex-col items-center gap-2">
+                            <span className="text-[10px] bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded font-black uppercase tracking-wider">
+                              Queued (Pending Concurrent Jobs)
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                speedUp(activeAnalysisJobId);
+                              }}
+                              className="px-2.5 py-1 bg-lavender-accent/15 hover:bg-lavender-accent hover:text-black border border-lavender-accent/30 text-lavender-accent text-[10px] font-black rounded-lg transition-all cursor-pointer"
+                            >
+                              ⚡ Speed Up Job Priority
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        {lastAnalyzedImage ? (
+                          <div className="relative group max-w-xs max-h-[160px] rounded-lg overflow-hidden border border-lavender-border shadow">
+                            <img 
+                              src={lastAnalyzedImage} 
+                              alt="Last uploaded preset preview" 
+                              className="max-h-[160px] w-auto h-auto object-contain bg-black/40"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="absolute inset-0 bg-black/65 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-center items-center gap-1.5">
+                              <Upload className="text-lavender-accent" size={20} />
+                              <span className="text-[10px] font-bold text-white uppercase tracking-wider">Drop or click to change</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="w-14 h-14 rounded-full bg-lavender-accent/5 flex items-center justify-center text-lavender-accent/40 group-hover:text-lavender-accent border border-lavender-accent/15">
+                            <Image size={24} />
+                          </div>
+                        )}
+                        <div className="space-y-1">
+                          <p className="text-xs font-black text-white uppercase tracking-wider">
+                            {isDraggingOver 
+                              ? "Release to Analyze Image!" 
+                              : lastAnalyzedImage 
+                                ? "Image Inspiration Loaded" 
+                                : "Drag & Drop Image Here"
+                            }
+                          </p>
+                          <p className="text-[10.5px] text-lavender-text/50 font-semibold italic">
+                            {lastAnalyzedImage 
+                              ? "or drop/paste another image anywhere inside this panel to change" 
+                              : "or click to select, paste an image (Ctrl+V), or drag & drop"
+                            }
+                          </p>
+                        </div>
+                        {imageError && (
+                          <div className="text-center space-y-1 shrink-0 p-3 bg-red-500/10 border border-red-500/20 rounded-xl max-w-sm mt-1 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                            <span className="text-[10.5px] font-black text-red-400 uppercase tracking-widest block flex items-center justify-center gap-1">
+                              ⚠️ Processing Warning
+                            </span>
+                            <span className="text-[9.5px] text-lavender-text/60 font-semibold block leading-relaxed">
+                              {imageError}
+                            </span>
+                          </div>
+                        )}
+                        {lastAnalyzedImage && !imageError && (
+                          <div className="text-center space-y-1 shrink-0 p-3 bg-green-500/10 border border-green-500/20 rounded-xl max-w-sm mt-1 animate-fade-in">
+                            <span className="text-[10.5px] font-black text-green-400 uppercase tracking-widest block flex items-center justify-center gap-1">
+                              <CheckCircle size={12} /> Options Pre-configured!
+                            </span>
+                            <span className="text-[9.5px] text-lavender-text/60 font-semibold block leading-relaxed animate-fade-in">
+                              Title, Guidelines, Tempo, Key, Mood, Genres and Instruments have been successfully configured from this visual.
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Seriousness Slider Control Block */}
+                  <div className="bg-lavender-surface/10 border border-lavender-border/20 rounded-xl p-4.5 space-y-2.5 shrink-0 text-left">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-black text-lavender-accent uppercase tracking-wider block flex items-center gap-1">
+                          <Sliders size={12} /> Topic Seriousness Level
+                        </span>
+                        <span className="text-[10px] bg-lavender-accent/10 border border-lavender-accent/20 text-lavender-text px-1.5 py-0.5 rounded font-black font-mono">
+                          {imageSeriousness === 0 ? "Default Settings" : imageSeriousness === 10 ? "Extremely Serious (Solemn)" : `Level ${imageSeriousness}/10`}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-lavender-text/45 font-semibold font-mono">
+                        {imageSeriousness >= 7 ? "⚠️ Ignoring default folk/sapphic settings" : "Allows default cozy settings"}
+                      </span>
+                    </div>
+
+                    <p className="text-[10.5px] text-lavender-text/50 font-semibold leading-relaxed">
+                      Select how serious or solemn the topic is. High seriousness levels (7+) bypass all relaxed bohemian folk/pagan/sapphic defaults (such as Crwth, bagpipes, etc.) and force the AI to produce dignified, respectful, classical/solemn songwriting.
+                    </p>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-bold text-lavender-text/40 uppercase tracking-widest select-none">Bohemian</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="10"
+                        step="1"
+                        value={imageSeriousness}
+                        onChange={(e) => setImageSeriousness(parseInt(e.target.value, 10))}
+                        className="flex-1 accent-lavender-accent cursor-pointer h-1.5 bg-lavender-border/30 rounded-lg appearance-none"
+                      />
+                      <span className="text-[10px] font-bold text-lavender-text/40 uppercase tracking-widest select-none">Solemn & Serious</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {promptSubTab === 'suggestedTitle' && (
+              <div className="flex flex-col gap-4 h-full">
+                <div className="flex flex-col gap-1 shrink-0">
+                  <h3 className="text-sm font-extrabold text-lavender-accent uppercase tracking-widest flex items-center gap-1.5">
+                    Suggested Song Title
+                  </h3>
+                  <p className="text-[11px] text-lavender-text/50 font-semibold italic">Provide a custom theme, concept, or specific song title to prioritize for generation. Always active.</p>
+                </div>
+
+                <div className="flex-1 flex flex-col gap-3 justify-center max-w-2xl mx-auto w-full">
+                  <div className="bg-lavender-surface/10 border border-lavender-border/25 rounded-xl p-5 md:p-6 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10.5px] font-black text-lavender-text/60 uppercase tracking-wider block">
+                        Target Song Title / Concept Suggestion
+                      </span>
+                      {suggestedTitle && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (navigator.clipboard) {
+                              navigator.clipboard.writeText(suggestedTitle);
+                            }
+                          }}
+                          title="Copy text to clipboard"
+                          className="p-1.5 text-lavender-text/45 hover:text-lavender-accent hover:bg-lavender-accent/5 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Copy size={13} />
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={suggestedTitle}
+                        onChange={(e) => setSuggestedTitle(e.target.value)}
+                        placeholder="E.g. Under the Mongolian Sky, Metal Contralto, Moonlight Dance..."
+                        className="w-full bg-lavender-surface border border-lavender-border text-lavender-text rounded-lg py-3 pl-4 pr-10 text-xs focus:outline-none focus:border-lavender-accent font-bold placeholder:text-lavender-text/25 font-mono text-center text-sm tracking-wide"
+                      />
+                      {suggestedTitle && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (navigator.clipboard) {
+                              navigator.clipboard.writeText(suggestedTitle);
+                            }
+                          }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-lavender-text/40 hover:text-lavender-accent transition-colors cursor-pointer"
+                        >
+                          <Copy size={14} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div 
+                      className="flex items-center gap-2.5 bg-lavender-surface/20 border border-lavender-border/15 rounded-lg p-3 cursor-pointer hover:bg-lavender-surface/30 transition-colors select-none" 
+                      onClick={() => setExactTitle(!exactTitle)}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={exactTitle}
+                        onChange={(e) => setExactTitle(e.target.checked)}
+                        className="w-4 h-4 rounded border-lavender-border text-lavender-accent focus:ring-0 bg-lavender-surface accent-lavender-accent cursor-pointer font-sans"
+                        id="title-exact-checkbox"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <label htmlFor="title-exact-checkbox" className="flex-1 flex flex-col cursor-pointer font-sans">
+                        <span className="text-xs font-bold text-lavender-text">
+                          Use exact title (force AI to use it verbatim)
+                        </span>
+                        <span className="text-[10px] text-lavender-text/50 font-semibold italic mt-0.5">
+                          {exactTitle ? 'Enforced: The AI must keep the title exactly as typed.' : 'Recommendation: AI can decide to change it if need be (Suggestion).'}
+                        </span>
+                      </label>
+                    </div>
+
+                    <p className="text-[11px] text-lavender-text/40 text-center font-medium leading-relaxed">
+                      The AI model will prioritize this suggestion when determining the song title, lyrics focus, and meta-parameters. Leaving it empty allows the model to fully design a custom title based on instructions.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {promptSubTab === 'lyrics' && (
+              <div className="flex flex-col gap-4 h-full flex-1 min-h-0">
+                <div className="flex flex-col gap-1 shrink-0">
+                  <h3 className="text-sm font-extrabold text-lavender-accent uppercase tracking-widest flex items-center gap-1.5">
+                    Lyrics Guidelines & Prompts
+                  </h3>
+                  <p className="text-[11px] text-lavender-text/50 font-semibold italic">Construct the lyrical premise, prompt directives, theme choices, and central story guidelines. Always active.</p>
+                </div>
+
+                <div className="flex-1 flex flex-col min-h-0">
+                  <div className="flex justify-between items-center mb-1 shrink-0">
+                    <span className="text-[10px] font-extrabold text-lavender-text/50 uppercase tracking-widest block">
+                      Detailed Lyrics Guidelines & Topic Constraints
+                    </span>
+                    {instructions && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (navigator.clipboard) {
+                            navigator.clipboard.writeText(instructions);
+                          }
+                        }}
+                        title="Copy text to clipboard"
+                        className="p-1 text-lavender-text/40 hover:text-lavender-accent transition-colors cursor-pointer"
+                      >
+                        <Copy size={12} />
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative flex-1 flex flex-col min-h-0">
+                    <textarea
+                      value={instructions}
+                      onChange={(e) => setInstructions(e.target.value)}
+                      placeholder="E.g. Compose an uplifting heavy-metal ballad about a software developer fixing memory leaks at 3:00 AM on a Friday night..."
+                      className="w-full flex-1 p-3.5 pr-10 bg-lavender-surface border border-lavender-border text-lavender-text text-xs focus:outline-none focus:border-lavender-accent rounded-lg font-bold placeholder:text-lavender-text/25 font-mono leading-relaxed resize-none"
+                    />
+                    {instructions && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (navigator.clipboard) {
+                            navigator.clipboard.writeText(instructions);
+                          }
+                        }}
+                        className="absolute right-3 bottom-3 p-1.5 bg-lavender-surface/80 border border-lavender-border/40 rounded-lg text-lavender-text/40 hover:text-lavender-accent transition-colors cursor-pointer animate-fade-in"
+                      >
+                        <Copy size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {promptSubTab === 'artistImpression' && (
+              <div className="flex flex-col gap-4 h-full">
+                <div className="flex flex-col gap-1 shrink-0">
+                  <h3 className="text-sm font-extrabold text-lavender-accent uppercase tracking-widest flex items-center gap-1.5">
+                    Artist Impression & Ideas
+                  </h3>
+                  <p className="text-[11px] text-lavender-text/50 font-semibold italic">Provide band inspirations, stylistic aesthetic directions, vocals vibes, or key artist references. Always active.</p>
+                </div>
+
+                <div className="flex-1 flex flex-col gap-3 justify-center max-w-2xl mx-auto w-full">
+                  <div className="bg-lavender-surface/10 border border-lavender-border/25 rounded-xl p-5 md:p-6 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10.5px] font-black text-lavender-text/60 uppercase tracking-wider block">
+                        Artist Impression & Reference Styles
+                      </span>
+                      {musicInspiration && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (navigator.clipboard) {
+                              navigator.clipboard.writeText(musicInspiration);
+                            }
+                          }}
+                          title="Copy text to clipboard"
+                          className="p-1.5 text-lavender-text/45 hover:text-lavender-accent hover:bg-lavender-accent/5 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Copy size={13} />
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={musicInspiration}
+                        onChange={(e) => setMusicInspiration(e.target.value)}
+                        placeholder="E.g. Evanescence, Nightwish, Avenged Sevenfold, melodic symphonic metal keys"
+                        className="w-full bg-lavender-surface border border-lavender-border text-lavender-text rounded-lg py-3 pl-4 pr-10 text-xs focus:outline-none focus:border-lavender-accent font-bold placeholder:text-lavender-text/25 font-mono text-center text-sm tracking-wide"
+                      />
+                      {musicInspiration && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (navigator.clipboard) {
+                              navigator.clipboard.writeText(musicInspiration);
+                            }
+                          }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-lavender-text/40 hover:text-lavender-accent transition-colors cursor-pointer"
+                        >
+                          <Copy size={14} />
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-lavender-text/40 text-center font-medium leading-relaxed">
+                      Provide specific musical references (artists, bands, genres, or stylistic periods) that should govern the poetic layout and performance suggestions of the generated lyrics.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      case 'intentEnergy':
+        return (
+          <div className="flex flex-col h-full">
+            {renderEnableHeader(
+              "Focus Psyche / Intent & Energy",
+              "Specify energy flow, brain focus/chill levels, and emotional narrative umbrellas to adapt lyrics cadence and tension patterns.",
+              "intentEnergy"
+            )}
+            
+            {maybeOverlayDisabled(
+              <div className="flex-1 flex flex-col min-h-0 space-y-3.5">
+                {/* Search and control bar */}
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-2.5 text-lavender-text/45 w-4 h-4" />
+                    <input
+                      type="text"
+                      placeholder="Search energy states, genres, or pacing descriptors..."
+                      value={intentQuery}
+                      onChange={(e) => setIntentQuery(e.target.value)}
+                      className="w-full pl-9 pr-8 py-2 text-xs font-sans rounded-lg bg-black/40 border border-lavender-border/25 text-white focus:outline-none focus:border-lavender-accent/60 placeholder:text-lavender-text/30"
+                    />
+                    {intentQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setIntentQuery('')}
+                        className="absolute right-2.5 top-2.5 text-lavender-text/50 hover:text-white"
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {selectedIntents.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedIntents([])}
+                      className="px-3 py-2 text-[10px] font-extrabold text-red-400 hover:text-red-300 border border-red-500/30 hover:border-red-400 bg-red-500/10 rounded-lg shrink-0 transition-all flex items-center gap-1 uppercase tracking-wider"
+                    >
+                      <Trash2 size={11} /> Clear All ({selectedIntents.length})
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 overflow-hidden">
+                  {/* Category Filter Left Rail */}
+                  <div className="w-full lg:w-48 shrink-0 flex flex-col border-b lg:border-b-0 lg:border-r border-lavender-border/20 pb-2 lg:pb-0 lg:pr-3 overflow-y-auto max-h-[14vh] lg:max-h-none space-y-1">
+                    <span className="text-[10px] font-extrabold text-lavender-text/40 uppercase tracking-wider block mb-1">Focus Categories</span>
+                    {[
+                      { id: 'All', name: 'All Categories', count: INTENT_ENERGY_GROUPS.reduce((acc, c) => acc + c.subgroups.length, 0) },
+                      ...INTENT_ENERGY_GROUPS.map(g => ({
+                        id: g.category,
+                        name: g.category,
+                        count: g.subgroups.length
+                      }))
+                    ].map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setIntentCategoryFilter(cat.id)}
+                        className={`w-full text-left p-2 rounded-lg text-xs font-bold transition-all truncate flex items-center justify-between ${
+                          cat.id === intentCategoryFilter ? 'bg-lavender-accent text-black font-extrabold' : 'hover:bg-lavender-surface text-lavender-text/80'
+                        }`}
+                      >
+                        <span className="truncate">{cat.name}</span>
+                        <span className="text-[8px] font-mono opacity-65">{cat.count}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Subgroups Selection Grid */}
+                  <div className="flex-1 overflow-y-auto pr-1">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
+                      {INTENT_ENERGY_GROUPS
+                        .filter(g => intentCategoryFilter === 'All' || g.category === intentCategoryFilter)
+                        .map(g => {
+                          const matchingSg = g.subgroups.filter(sg => {
+                            if (!intentQuery.trim()) return true;
+                            const term = intentQuery.toLowerCase();
+                            return (
+                              sg.name.toLowerCase().includes(term) ||
+                              sg.examples.toLowerCase().includes(term) ||
+                              sg.description.toLowerCase().includes(term)
+                            );
+                          });
+
+                          return matchingSg.map(sg => {
+                            const isSelected = selectedIntents.includes(sg.id);
+                            return (
+                              <div
+                                key={sg.id}
+                                onClick={() => {
+                                  setSelectedIntents(prev =>
+                                    prev.includes(sg.id)
+                                      ? prev.filter(id => id !== sg.id)
+                                      : [...prev, sg.id]
+                                  );
+                                }}
+                                className={`group p-3 rounded-xl border transition-all cursor-pointer select-none relative flex flex-col justify-between h-28 ${
+                                  isSelected 
+                                    ? 'bg-sky-500/15 border-sky-450 hover:border-sky-400 shadow-md shadow-sky-500/5' 
+                                    : 'bg-lavender-surface/10 border-lavender-border/20 hover:border-lavender-accent/30 hover:bg-lavender-surface/15'
+                                }`}
+                              >
+                                <div>
+                                  <div className="flex items-start justify-between gap-2">
+                                    <h4 className={`text-xs font-extrabold tracking-wide uppercase ${isSelected ? 'text-sky-300' : 'text-lavender-accent'}`}>
+                                      {sg.name}
+                                    </h4>
+                                    <span className="text-[8px] font-bold text-lavender-text/30 group-hover:text-lavender-text/50 transition-colors uppercase tracking-widest leading-none">
+                                      {g.umbrella.split(" ")[1] || g.umbrella}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-lavender-text/80 font-medium leading-relaxed mt-1 line-clamp-2">{sg.description}</p>
+                                </div>
+
+                                <div className="mt-2.5 border-t border-lavender-border/10 pt-1.5 flex items-center justify-between gap-2 shrink-0">
+                                  <span className="text-[9px] text-lavender-text/45 font-bold italic truncate max-w-[85%]">{sg.examples}</span>
+                                  <div className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center shrink-0 transition-all ${
+                                    isSelected ? 'bg-sky-500 border-sky-450 text-white' : 'border-lavender-border/40'
+                                  }`}>
+                                    {isSelected && <Check size={10} className="stroke-[3.5]" />}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          });
+                        })}
+                    </div>
+                  </div>
+                </div>
+              </div>,
+              "intentEnergy"
+            )}
           </div>
         );
       case 'vocalAccentTone':
@@ -1325,7 +2507,7 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
                     {accentSearch.trim() === '' && (
                       <div className="w-full lg:w-48 shrink-0 flex flex-col border-b lg:border-b-0 lg:border-r border-lavender-border/20 pb-2 lg:pb-0 lg:pr-3 overflow-y-auto max-h-[14vh] lg:max-h-none space-y-1">
                         <span className="text-[10px] font-extrabold text-lavender-text/40 uppercase tracking-wider block mb-1">Groups</span>
-                        {LANGUAGE_GROUPS.map((group) => (
+                        {sortedLanguageGroups.map((group) => (
                           <button
                             key={group.id}
                             type="button"
@@ -1768,6 +2950,13 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
               >
                 Duet Partner-ups
               </button>
+              <button
+                type="button"
+                onClick={() => setSingersSubTab('nationalities')}
+                className={`flex-1 py-1.5 px-3 text-xs font-black transition-all rounded-md cursor-pointer whitespace-nowrap min-w-[120px] text-center ${singersSubTab === 'nationalities' ? 'bg-lavender-accent text-black font-extrabold shadow' : 'text-lavender-text/60 hover:text-lavender-text/90'}`}
+              >
+                National Cultures
+              </button>
             </div>
 
             {singersSubTab === 'casting' && (
@@ -1915,16 +3104,18 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
                       {/* Categories Sidebar */}
                       <div className="w-full lg:w-48 shrink-0 flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto border-b lg:border-b-0 lg:border-r border-lavender-border/20 pb-2.5 lg:pb-0 lg:pr-3 gap-1.5 whitespace-nowrap lg:whitespace-normal max-h-[55px] lg:max-h-none">
                         <span className="hidden lg:block text-[9px] font-extrabold text-lavender-text/40 uppercase tracking-widest px-1 mb-1.5">Categories</span>
-                        {['All', 'Ancient & Exotic', 'Acoustic Strings', 'Bowed Strings', 'Brass', 'Drums & Snare', 'Percussion & Metal', 'Woodwinds & Reeds', 'Electronic'].map(cat => {
+                        {['All', ...INSTRUMENT_GROUPS_LIST].map(cat => {
                           const count = (singerInstruments[activeInstrumentSinger] || []).filter(name => {
                             const inst = SINGLE_SINGER_INSTRUMENTS.find(i => i.name === name);
-                            return inst && (cat === 'All' || inst.group === cat);
+                            return inst && (cat === 'All' || inst.groups.includes(cat));
                           }).length;
                           return (
                             <button
                               key={cat}
                               type="button"
-                              onClick={() => setActiveSingerInstrumentGroup(cat)}
+                              onClick={() => {
+                                setActiveSingerInstrumentGroup(cat);
+                              }}
                               className={`text-left px-3 py-1.5 lg:p-2 lg:w-full rounded-lg text-xs font-bold transition-all truncate flex items-center justify-between cursor-pointer ${
                                 cat === activeSingerInstrumentGroup 
                                   ? 'bg-lavender-accent text-black font-extrabold shadow-sm' 
@@ -1949,7 +3140,7 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
                         </div>
 
                         <div className="flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 py-0.5 pr-1 font-mono">
-                          {SINGLE_SINGER_INSTRUMENTS.filter(inst => activeSingerInstrumentGroup === 'All' || inst.group === activeSingerInstrumentGroup).map((inst) => {
+                          {SINGLE_SINGER_INSTRUMENTS.filter(inst => activeSingerInstrumentGroup === 'All' || inst.groups.includes(activeSingerInstrumentGroup)).map((inst) => {
                             const activeInstList = singerInstruments[activeInstrumentSinger] || [];
                             const isSelected = activeInstList.includes(inst.name);
                             return (
@@ -2085,6 +3276,86 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
                     </div>
                   </div>,
                   'partnerUp'
+                )}
+              </div>
+            )}
+
+            {singersSubTab === 'nationalities' && (
+              <div className="flex-1 flex flex-col min-h-0 text-lavender-text">
+                {renderEnableHeader("Singer National Cultures & Accents", "Assign a regional/national culture to each singer. This determines their accent and instrument styling if no specific instruments have been configured.", "singers")}
+                {maybeOverlayDisabled(
+                  <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {singersMeta.map((s) => {
+                        const currentNatId = singerNationalities[s.id] || '';
+                        const matchedNat = NATIONALITIES.find(n => n.id === currentNatId);
+
+                        return (
+                          <div key={s.id} className="p-4 bg-lavender-surface/30 border border-lavender-border/40 rounded-xl flex flex-col gap-3 h-full">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="text-xs font-black text-lavender-accent block">{s.name}</span>
+                                <span className="text-[10px] text-lavender-text/50 font-semibold">{s.voice}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[10px] font-extrabold text-lavender-text/50 uppercase tracking-widest">Selected Culture</label>
+                              <div className="relative">
+                                <select
+                                  value={currentNatId}
+                                  onChange={(e) => {
+                                    setSingerNationalities(prev => ({
+                                      ...prev,
+                                      [s.id]: e.target.value
+                                    }));
+                                  }}
+                                  className="w-full bg-lavender-surface border border-lavender-border/40 text-lavender-text text-xs rounded-lg p-2 font-bold focus:outline-none focus:border-lavender-accent cursor-pointer"
+                                >
+                                  <option value="">Default (None / British Standard)</option>
+                                  {['Africa', 'Americas', 'Asia', 'Europe', 'Oceania'].map((continent) => {
+                                    const filteredNats = NATIONALITIES.filter(n => n.continent === continent).sort((a, b) => a.name.localeCompare(b.name));
+                                    if (filteredNats.length === 0) return null;
+                                    return (
+                                      <optgroup key={continent} label={continent} className="bg-lavender-surface text-lavender-accent font-black">
+                                        {filteredNats.map((n) => (
+                                          <option key={n.id} value={n.id} className="text-white font-bold">
+                                            {n.flag} {n.name}
+                                          </option>
+                                        ))}
+                                      </optgroup>
+                                    );
+                                  })}
+                                </select>
+                              </div>
+                            </div>
+
+                            {matchedNat ? (
+                              <div className="mt-1 p-2.5 bg-lavender-surface/60 border border-lavender-border/20 rounded-lg flex flex-col gap-2 text-[10px] flex-1">
+                                <div>
+                                  <span className="font-extrabold text-lavender-accent">Vocal Accent Impact:</span>
+                                  <p className="text-lavender-text/85 mt-0.5 leading-relaxed">{matchedNat.accentImpact}</p>
+                                </div>
+                                <div className="border-t border-lavender-border/20 pt-1.5">
+                                  <span className="font-extrabold text-lavender-accent">Instrument Performance style:</span>
+                                  <p className="text-lavender-text/85 mt-0.5 leading-relaxed">{matchedNat.instrumentImpact}</p>
+                                </div>
+                                <div className="border-t border-lavender-border/20 pt-1.5">
+                                  <span className="font-extrabold text-lavender-accent">Traditional Instruments:</span>
+                                  <p className="text-lavender-text/60 font-semibold mt-0.5 leading-relaxed">{matchedNat.defaultInstruments.join(", ")}</p>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mt-1 p-3 bg-lavender-surface/10 border border-dashed border-lavender-border/25 rounded-lg flex items-center justify-center text-center text-[10px] text-lavender-text/40 italic flex-1 min-h-[120px]">
+                                No custom national culture assigned. Using default British Standard patterns & bagpipes/crwth instrumentation.
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>,
+                  'singers'
                 )}
               </div>
             )}
@@ -2672,6 +3943,13 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
               >
                 Sapphic Meter
               </button>
+              <button
+                type="button"
+                onClick={() => setSlidersSubTab('wildness')}
+                className={`flex-1 py-1.5 px-3 text-xs font-black transition-all rounded-md cursor-pointer whitespace-nowrap min-w-[125px] text-center ${slidersSubTab === 'wildness' ? 'bg-lavender-accent text-black font-extrabold shadow' : 'text-lavender-text/60 hover:text-lavender-text/90'}`}
+              >
+                Wildness
+              </button>
             </div>
 
             {slidersSubTab === 'innuendo' && (
@@ -2680,11 +3958,11 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
                 {maybeOverlayDisabled(
                   <div className="p-4 flex flex-col gap-5 max-w-lg">
                     <div className="space-y-1">
-                      <span className="text-[10px] font-extrabold text-lavender-text/50 uppercase tracking-widest block">Innuendo Level (0 to 10):</span>
+                      <span className="text-[10px] font-extrabold text-lavender-text/50 uppercase tracking-widest block">Innuendo Level (24 Steps - 0 to 23):</span>
                       <input
                         type="range"
                         min="0"
-                        max="10"
+                        max="23"
                         step="1"
                         value={dialogInnuendoLevel}
                         onChange={(e) => setDialogInnuendoLevel(parseInt(e.target.value, 10))}
@@ -2715,11 +3993,11 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
                 {maybeOverlayDisabled(
                   <div className="p-4 flex flex-col gap-5 max-w-lg">
                     <div className="space-y-1">
-                      <span className="text-[10px] font-extrabold text-lavender-text/50 uppercase tracking-widest block">Epic drama Scale (0 to 10):</span>
+                      <span className="text-[10px] font-extrabold text-lavender-text/50 uppercase tracking-widest block">Epic drama Scale (24 Steps - 0 to 23):</span>
                       <input
                         type="range"
                         min="0"
-                        max="10"
+                        max="23"
                         step="1"
                         value={dialogEpicLevel}
                         onChange={(e) => setDialogEpicLevel(parseInt(e.target.value, 10))}
@@ -2812,6 +4090,42 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
                     })()}
                   </div>,
                   'sapphicLevel'
+                )}
+              </div>
+            )}
+
+            {slidersSubTab === 'wildness' && (
+              <div className="flex-1 flex flex-col min-h-0">
+                {renderEnableHeader("Wildness & Chaos Level", "Fine-adjust the dynamic energy and pacing unpredictability, from absolute stillness to complete chaotic madness!", "wildnessLevel")}
+                {maybeOverlayDisabled(
+                  <div className="p-4 flex flex-col gap-5 max-w-lg">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-extrabold text-lavender-text/50 uppercase tracking-widest block">Wildness / Chaos Scale (24 Steps - 0 to 23):</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="23"
+                        step="1"
+                        value={dialogWildnessLevel}
+                        onChange={(e) => setDialogWildnessLevel(parseInt(e.target.value, 10))}
+                        className="w-full accent-lavender-accent cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Level Details card */}
+                    {(() => {
+                      const step = getWildnessStep(dialogWildnessLevel);
+                      return (
+                        <div className="p-4 border border-lavender-border/40 bg-lavender-surface/50 rounded-xl relative shadow-md">
+                          <div className="absolute right-4 top-4 bg-lavender-accent text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded leading-none">Step {step.level} / 23</div>
+                          <span className="text-[10px] font-extrabold text-lavender-accent uppercase tracking-widest block">Active Wildness State:</span>
+                          <h4 className="text-sm font-black text-white mt-1">{step.label}</h4>
+                          <p className="text-[11px] text-lavender-text/65 font-bold leading-relaxed mt-2 p-3 bg-black/30 border border-lavender-border/10 rounded-lg">{step.description}</p>
+                        </div>
+                      );
+                    })()}
+                  </div>,
+                  'wildnessLevel'
                 )}
               </div>
             )}
@@ -3087,54 +4401,166 @@ export const GenerateDialog: React.FC<GenerateDialogProps> = ({
               Dashboard Options
             </span>
             
-            <div className="space-y-1 flex-1 overflow-y-auto pr-0.5">
+            <div className="space-y-2.5 flex-1 overflow-y-auto pr-0.5 custom-scrollbar">
               {tabsList.map((tab) => {
                 const isActive = tab.id === activeTabId;
                 const isEnabled = enabledTabs[tab.id];
+                const isExpanded = expandedNodes[tab.id];
                 const canDisable = tab.id !== 'prompt';
+                const children = tabChildren[tab.id] || [];
 
                 return (
-                  <div
-                    key={tab.id}
-                    className="group flex items-center justify-between gap-1 w-full"
-                  >
-                    {/* Tab selection link button */}
-                    <button
-                      type="button"
-                      onClick={() => setActiveTabId(tab.id)}
-                      className={`flex-1 text-left px-3 py-2.5 rounded-lg text-[11.5px] transition-all flex items-center gap-2 truncate cursor-pointer ${
-                        isActive
-                          ? 'bg-lavender-accent text-black font-extrabold shadow h-full'
-                          : 'hover:bg-lavender-surface/60 text-lavender-text/80 h-full'
-                      }`}
-                    >
-                      <span className={`shrink-0 ${isActive ? 'text-black' : isEnabled ? 'text-green-400' : 'text-lavender-text/45'}`}>
-                        {tab.icon}
-                      </span>
-                      <div className="min-w-0 pr-1 select-none">
-                        <span className={`block truncate ${isActive ? 'font-black' : isEnabled ? 'text-green-400/90 font-extrabold' : 'font-bold'}`}>
-                          {tab.label.replace(/^\d+\.\s*/, '')}
-                        </span>
-                      </div>
-                    </button>
-
-                    {/* Left Checklist indicator switch (compact click trigger) */}
-                    {canDisable ? (
+                  <div key={tab.id} className="flex flex-col">
+                    {/* Parent Node Header */}
+                    <div className="group flex items-center justify-between gap-1 w-full relative">
+                      {/* Left Expand/Collapse toggler chevron */}
                       <button
                         type="button"
-                        onClick={() => toggleTabEnabled(tab.id)}
-                        className={`w-7 h-7 flex items-center justify-center rounded-lg border transition-all shrink-0 hover:bg-lavender-surface select-none cursor-pointer ${
-                          isEnabled 
-                            ? 'bg-green-500/10 border-green-500/30 text-green-400' 
-                            : 'bg-transparent border-lavender-border/30 text-lavender-text/30'
-                        }`}
-                        title={isEnabled ? "Disable this parameter" : "Enable this parameter"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedNodes(prev => ({ ...prev, [tab.id]: !prev[tab.id] }));
+                        }}
+                        className="w-5 h-7 flex items-center justify-center text-lavender-text/40 hover:text-lavender-accent cursor-pointer transition-all shrink-0"
                       >
-                        {isEnabled ? <Check size={12} strokeWidth={3} /> : <div className="w-1.5 h-1.5 rounded-full bg-lavender-text/20" />}
+                        {isExpanded ? (
+                          <ChevronDown size={11} strokeWidth={2.5} />
+                        ) : (
+                          <ChevronRight size={11} strokeWidth={2.5} />
+                        )}
                       </button>
-                    ) : (
-                      <div className="w-7 h-7 flex items-center justify-center shrink-0">
-                        <span className="text-[9px] font-black text-lavender-accent/60 uppercase">CORE</span>
+
+                      {/* Tab selection label button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTabId(tab.id);
+                          if (!isExpanded) {
+                            setExpandedNodes(prev => ({ ...prev, [tab.id]: true }));
+                          }
+                        }}
+                        className={`flex-1 text-left px-2 py-1.5 rounded-lg text-[11.5px] transition-all flex items-center gap-1.5 truncate cursor-pointer ${
+                          isActive
+                            ? 'bg-lavender-accent text-black font-extrabold shadow'
+                            : 'hover:bg-lavender-surface/50 text-lavender-text/80'
+                        }`}
+                      >
+                        <span className={`shrink-0 ${isActive ? 'text-black' : isEnabled ? 'text-green-400' : 'text-lavender-text/45'}`}>
+                          {tab.icon}
+                        </span>
+                        <div className="min-w-0 pr-1 select-none flex-1 flex items-center justify-between gap-1">
+                          <span className={`block truncate ${isActive ? 'font-black' : isEnabled ? 'text-green-400/90 font-extrabold' : 'font-bold'}`}>
+                            {tab.label.replace(/^\d+\.\s*/, '')}
+                          </span>
+                          {/* Selected option count badge */}
+                          {(() => {
+                            const count = getTabSelectionCount(tab.id);
+                            if (count > 0) {
+                              return (
+                                <span className={`px-1.5 py-0.5 text-[9px] font-black rounded-full shrink-0 ${
+                                  isActive
+                                    ? 'bg-black/35 text-lavender-accent border border-black/10'
+                                    : isEnabled
+                                      ? 'bg-green-500/20 text-green-300 border border-green-500/25'
+                                      : 'bg-lavender-accent/15 text-lavender-accent'
+                                }`}>
+                                  {count}
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
+                      </button>
+
+                      {/* Parent Checklist Switch (Compact checklist toggle) */}
+                      {canDisable ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleTabEnabled(tab.id)}
+                          className={`w-6 h-6 flex items-center justify-center rounded-md border transition-all shrink-0 hover:bg-lavender-surface select-none cursor-pointer ${
+                            isEnabled 
+                              ? 'bg-green-500/15 border-green-500/35 text-green-400' 
+                              : 'bg-transparent border-lavender-border/20 text-lavender-text/25'
+                          }`}
+                          title={isEnabled ? "Disable this parameter track" : "Enable this parameter track"}
+                        >
+                          {isEnabled ? <Check size={10} strokeWidth={3} /> : <div className="w-1.5 h-1.5 rounded-full bg-lavender-text/20" />}
+                        </button>
+                      ) : (
+                        <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                          <span className="text-[8px] font-black text-lavender-accent/60 uppercase">CORE</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Child Branches list */}
+                    {isExpanded && children.length > 0 && (
+                      <div className="ml-5 pl-2.5 border-l border-lavender-border/15 flex flex-col mt-0.5 mb-1.5 select-none font-medium">
+                        {children.map((child, idx) => {
+                          // Determine if child is currently active
+                          let isActiveChild = false;
+                          if (activeTabId === tab.id) {
+                            if (tab.id === 'vocalAccentTone') isActiveChild = accentToneSubTab === child.subId;
+                            else if (tab.id === 'composer') isActiveChild = composerSubTab === child.subId;
+                            else if (tab.id === 'singers') isActiveChild = singersSubTab === child.subId;
+                            else if (tab.id === 'musicTheory') isActiveChild = musicTheorySubTab === child.subId;
+                            else if (tab.id === 'structure') isActiveChild = structureSubTab === child.subId;
+                            else if (tab.id === 'poetics') isActiveChild = poeticsSubTab === child.subId;
+                            else if (tab.id === 'sliders') isActiveChild = slidersSubTab === child.subId;
+                            else if (tab.id === 'prompt') {
+                              isActiveChild = promptSubTab === child.subId;
+                            }
+                          }
+
+                          const selectChild = () => {
+                            setActiveTabId(tab.id);
+                            if (tab.id === 'vocalAccentTone') setAccentToneSubTab(child.subId as any);
+                            else if (tab.id === 'composer') setComposerSubTab(child.subId as any);
+                            else if (tab.id === 'singers') setSingersSubTab(child.subId as any);
+                            else if (tab.id === 'musicTheory') setMusicTheorySubTab(child.subId as any);
+                            else if (tab.id === 'structure') setStructureSubTab(child.subId as any);
+                            else if (tab.id === 'poetics') setPoeticsSubTab(child.subId as any);
+                            else if (tab.id === 'sliders') setSlidersSubTab(child.subId as any);
+                            else if (tab.id === 'prompt') setPromptSubTab(child.subId as any);
+                          };
+
+                          return (
+                            <button
+                              key={child.subId}
+                              type="button"
+                              onClick={selectChild}
+                              className={`group/child text-left py-1 text-[10.5px] transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                                isActiveChild 
+                                  ? 'text-lavender-accent font-extrabold' 
+                                  : 'text-lavender-text/55 hover:text-white font-medium'
+                              }`}
+                            >
+                              {/* Connector graphics */}
+                              <span className="text-lavender-border/20 group-hover/child:text-lavender-accent/40 font-semibold select-none">
+                                {idx === children.length - 1 ? '└─' : '├─'}
+                              </span>
+                              <span className="truncate flex-1 flex items-center justify-between gap-1 min-w-0 pr-1.5">
+                                <span>{child.label}</span>
+                                {(() => {
+                                  const childCount = getChildSelectionCount(tab.id, child.subId);
+                                  if (childCount > 0) {
+                                    return (
+                                      <span className={`px-1 py-0.2 px-[5px] text-[8.5px] font-bold rounded shrink-0 ${
+                                        isActiveChild
+                                          ? 'bg-lavender-accent/25 text-lavender-accent'
+                                          : 'bg-lavender-surface text-lavender-text/50 border border-lavender-border/10'
+                                      }`}>
+                                        {childCount}
+                                      </span>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+                              </span>
+                              {isActiveChild && <span className="w-1 h-1 rounded-full bg-lavender-accent shadow-sm shadow-lavender-accent shrink-0" />}
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

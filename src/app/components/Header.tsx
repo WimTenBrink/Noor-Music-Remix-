@@ -43,6 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
       items: [
         { id: 'api-key', label: 'API Key', tooltipTitle: 'Google Gemini Key', tooltipContent: 'Configure your Google Project API Credentials.' },
         { id: 'content-settings', label: 'Content Filters', tooltipTitle: 'Blocked Terms', tooltipContent: 'Specify forbidden topics or words to exclude from generation.' },
+        { id: 'clear', label: 'Clear', tooltipTitle: 'Clear Application', tooltipContent: 'Clears all the lyrics stuff and logs and does a refresh of the application.' },
       ]
     },
     {

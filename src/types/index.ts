@@ -17,15 +17,9 @@ export interface Job {
   prompt?: string;
   systemInstruction?: string;
   retryCount?: number;
-  generationSettings?: {
-    instructions: string;
-    musicInspiration: string;
-    dialectId: string;
-    rating: string;
-    coreGrooves: string[];
-    emotion: string;
-    selfReflect?: boolean;
-  };
+  generationSettings?: any;
+  imageBase64?: string;
+  imageMimeType?: string;
 }
 
 export interface StoryPrompts {
@@ -58,6 +52,7 @@ export interface Song {
   title: string;
   style: string;
   lyrics: string;
+  imageDescription?: string;
   imagePrompts?: {
     start: string;
     middle: string;
@@ -66,6 +61,11 @@ export interface Song {
   story?: string;
   storyPrompts?: StoryPrompts;
   interview?: string;
+  entendres?: string;
+  technical?: string;
+  interviewReview?: string;
+  analysis?: string;
+  compare?: string;
   settings?: any;
 }
 

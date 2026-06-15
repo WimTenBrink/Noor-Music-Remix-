@@ -87,6 +87,8 @@ export default function App() {
     viewItem,
     setViewItem,
     handleFileDrop,
+    isMp3Matched,
+    handleDropMp3,
     showContentSettings,
     setShowContentSettings,
     forbiddenTopics,
@@ -106,6 +108,8 @@ export default function App() {
     singerPrompts,
     singerInstruments,
     singerPartnerUps,
+    singerNationalities,
+    handleResetGenerationSettings
   } = useNoorApp();
 
   const { logs } = useLogs();
@@ -228,7 +232,8 @@ export default function App() {
           initialSingerPrompts={singerPrompts}
           initialSingerInstruments={singerInstruments}
           initialSingerPartnerUps={singerPartnerUps}
-          onClear={() => handleAction('clear')}
+          initialSingerNationalities={singerNationalities}
+          onClear={handleResetGenerationSettings}
         />
 
         <KaraokeDialog 
@@ -236,6 +241,10 @@ export default function App() {
           onClose={() => setShowKaraoke(false)}
           title={song.title}
           lyrics={song.lyrics}
+          isMp3Matched={isMp3Matched}
+          onDropMp3={handleDropMp3}
+          jobs={jobs}
+          song={song}
         />
 
         <SpoilerDialog 

@@ -18,7 +18,7 @@ Noor is a four-member female ensemble with a rich, interconnected backstory:
 - **Age:** Highly youthful, fresh-faced, collegiate appearance matching student-aged young adult women (appearing late-teens/early-twenties), without specifying numerical age numbers in prompts.
 - **Physicality:** They are exceptionally athletic, tone, and highly slender well-trained young women, avoiding any mature or heavy/overweight traits. They have small cup sizes.
 - **Lifestyle:** They prefer to be barefoot everywhere they go and are not ashamed of their bodies. They frequently visit naturist resorts.
-- **Relationships:** While they are two couples (Miranda/Annelies and Fannie/Emma), they behave as a single family, almost a foursome in everything.
+- **Relationships:** While they are two couples (Miranda/Annelies and Fannie/Emma), they behave as a single family; they have an unbreakable, deeply supportive sisterly/romantic bond as a quartet.
 - **Interests:** They have no desire to have children and no interest in men. Their bond is deeply sensual rather than purely sexual.
 
 ### Musical Identity
@@ -138,7 +138,7 @@ Emma is a confident and mischievous student from Amsterdam. She is lovers with F
 - **Age:** Highly youthful, fresh-faced, collegiate appearance matching student-aged young adult women (appearing late-teens/early-twenties), without specifying numerical age numbers in prompts.
 - **Physicality:** They are exceptionally athletic, tone, and highly slender well-trained young women, avoiding any massive or heavy/overweight traits. They have small cup sizes.
 - **Lifestyle:** They prefer to be barefoot everywhere they go and are not ashamed of their bodies. They frequently visit naturist resorts.
-- **Relationships:** While they are two couples (Miranda/Annelies and Fannie/Emma), they behave as a single family, almost a foursome in everything.
+- **Relationships:** While they are two couples (Miranda/Annelies and Fannie/Emma), they behave as a single family; they have an unbreakable, deeply supportive sisterly/romantic bond as a quartet.
 - **Interests:** They have no desire to have children and no interest in men. Their bond is deeply sensual rather than purely sexual.
 
 ## 3. Getting Started: Configuration
@@ -416,6 +416,7 @@ Two bathrooms are conveniently placed along the quiet hallways, ensuring ease fo
 #### The First Floor: The Hub of Activity
 *   **The Kitchen:** The vibrant heart of the house, fully equipped with high-end appliances, a vast island, and a long rustic table for shared meals. This is where Fannie often struggles with burning simple pots of tea.
 *   **The Living Room:** A colossally large room with several distinct zones. Each singer has their own designated table and ergonomic chair, allowing them to sit in comfort with their laptops, composing, writing, or designing.
+*   **The Norse Pagan Altar:** Tucked into a quiet, warm wood alcove in the living area lies their beautiful, hand-carved Nordic altar. While the singers are not traditionally religious, they reject Christianity in favor of a Norse Pagan worldview. The altar is dedicated to Thor, Odin, and Norse Goddesses like Freya, featuring wooden runes, beeswax candles, incense, and simple offerings. All four singers proudly wear Thor's hammers (Mjölnir) and Freya's cat-drawn chariot symbols as intricate silver necklaces.
 *   **The Wellness Wing:** A serene space designed for relaxation. It features a home spa, complete with a sauna and steam room, with calming views through floor-to-ceiling glass that overlooks the tranquil garden.
 *   **The Entertainment Room:** Dedicated to leisure, equipped with four top-tier gaming setups, allowing for late-night multiplayer sessions and stress relief.
 *   **The Solarium & Atrium:** A bright, sun-drenched space that serves as an extension of the garden, offering a view inward to the central Atrium, which houses exotic plants and acts as the air-cleansing lungs of the house.

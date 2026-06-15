@@ -98,7 +98,16 @@ class JobService {
     this.listeners.forEach(l => l([...this.queue]));
   }
 
-  addJob(name: string, priority: Priority, prompt: string, apiKey: string, generationSettings?: any, systemInstruction?: string) {
+  addJob(
+    name: string,
+    priority: Priority,
+    prompt: string,
+    apiKey: string,
+    generationSettings?: any,
+    systemInstruction?: string,
+    imageBase64?: string,
+    imageMimeType?: string
+  ) {
     const job: Job = {
       id: Math.random().toString(36).substring(7),
       name,
@@ -109,6 +118,8 @@ class JobService {
       prompt,
       systemInstruction: systemInstruction || SYSTEM_INSTRUCTIONS,
       generationSettings,
+      imageBase64,
+      imageMimeType,
     };
     this.queue.push(job);
     this.notify();
@@ -244,20 +255,53 @@ class JobService {
       // Construct "raw" request for logging
       const rawRequestObj = {
         model: "gemini-3.5-flash",
-        contents: job.prompt,
+        contents: job.imageBase64 ? [
+          { inlineData: { data: job.imageBase64, mimeType: job.imageMimeType } },
+          { text: job.prompt }
+        ] : job.prompt,
         config: {
           systemInstruction: resolvedSystemInstruction,
           responseMimeType: "application/json",
+          safetySettings: [
+            {
+              category: "HARM_CATEGORY_HARASSMENT",
+              threshold: "BLOCK_NONE",
+            },
+            {
+              category: "HARM_CATEGORY_HATE_SPEECH",
+              threshold: "BLOCK_NONE",
+            },
+            {
+              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+              threshold: "BLOCK_NONE",
+            },
+            {
+              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+              threshold: "BLOCK_NONE",
+            },
+            {
+              category: "HARM_CATEGORY_CIVIC_INTEGRITY",
+              threshold: "BLOCK_NONE",
+            },
+          ],
         }
       };
       job.rawRequest = JSON.stringify(rawRequestObj, (key, value) => {
-        if (typeof value === 'string' && value.length > 100 && value.match(/^[a-zA-Z0-9+/]*={0,2}$/)) {
-          return value.substring(0, 10) + "..." + value.substring(value.length - 10);
+        if (typeof value === 'string' && value.length > 100) {
+          if (value.startsWith('data:') || /^[a-zA-Z0-9+/=\s]{50,}$/.test(value) || value.includes('base64')) {
+            return value.substring(0, 10) + "..." + value.substring(value.length - 10);
+          }
         }
         return value;
       }, 2);
 
-      const response = await generateSong(job.prompt || '', apiKey, resolvedSystemInstruction);
+      const response = await generateSong(
+        job.prompt || '',
+        apiKey,
+        resolvedSystemInstruction,
+        job.imageBase64,
+        job.imageMimeType
+      );
       
       // Capture "raw" response for logging
       const rawResponseObj = {
@@ -265,8 +309,10 @@ class JobService {
         usageMetadata: (response as any).usageMetadata,
       };
       job.rawResponse = JSON.stringify(rawResponseObj, (key, value) => {
-        if (typeof value === 'string' && value.length > 100 && value.match(/^[a-zA-Z0-9+/]*={0,2}$/)) {
-          return value.substring(0, 10) + "..." + value.substring(value.length - 10);
+        if (typeof value === 'string' && value.length > 100) {
+          if (value.startsWith('data:') || /^[a-zA-Z0-9+/=\s]{50,}$/.test(value) || value.includes('base64')) {
+            return value.substring(0, 10) + "..." + value.substring(value.length - 10);
+          }
         }
         return value;
       }, 2);

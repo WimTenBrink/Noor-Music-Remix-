@@ -122,6 +122,7 @@ export const DIALECT_TOOLTIPS: Record<string, string> = {
   'vi-VN': 'Most popular in Vietnam, Hanoi, and Ho Chi Minh City.',
   'th-TH': 'Most popular in Thailand, Bangkok, and Southeast Asian pop circles.',
   'hi-IN': 'Most popular in Northern and Central India, and Bollywood cinema spaces.',
+  'mn-MN': 'Most popular in Mongolia, Ulaanbaatar, and nomadic steppes, known for powerful throat-singing.',
 
   // African Group
   'sw-KE': 'Most popular in Kenya, Tanzania, Uganda, Rwanda, and East African coastal grids.',

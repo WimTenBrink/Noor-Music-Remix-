@@ -110,7 +110,7 @@ A {annelies-age}-year-old Human Female
 
 - **Barefoot Preference:** Annelies prefers to be barefoot wherever she goes, finding a direct connection with the world around her.
 - **Body Positivity:** She is not ashamed of her body and frequently visits naturist resorts with the band.
-- **Family Dynamic:** While she is married to Miranda, the four band members behave as a single family, almost a foursome in everything.
+- **Family Dynamic:** While she is married to Miranda, the four band members behave as a single family; they have an unbreakable, deeply supportive sisterly/romantic bond as a quartet.
 - **Interests:** She has no desire to have children and no interest in men. She is more into sensual things than sexual things.
 
 ## The One Bad Skill

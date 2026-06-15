@@ -83,7 +83,9 @@ export const STYLES = [
       { name: "Celtic Folk", description: "A broad grouping of musical genres that evolved out of the folk musical traditions of the Celtic people of Western Europe." },
       { name: "Psychedelic Folk", description: "A musical genre that emerged in the mid-1960s, combining folk music with elements of psychedelia." },
       { name: "Freak Folk", description: "A loosely defined subgenre of psychedelic folk which involves acoustic elements, contemporary lyrics, and neo-hippie aesthetics." },
-      { name: "Americana", description: "An amalgam of American music formed by the confluence of the shared and varied traditions that make up the musical ethos of the United States." }
+      { name: "Americana", description: "An amalgam of American music formed by the confluence of the shared and varied traditions that make up the musical ethos of the United States." },
+      { name: "Khoomei Throat Singing", description: "Ancient Mongolian vocal art utilizing dual-tone guttural throat singing, with overtone frequencies reflecting winds and water." },
+      { name: "Urtiin Duu (Long Song)", description: "Traditional, deeply evocative Mongolian long song characterized by soaring, wide-ranged melodic arcs and elaborate classical ornaments." }
     ]
   },
   {
@@ -102,7 +104,9 @@ export const STYLES = [
       { name: "Symphonic Metal", description: "A subgenre of heavy metal music which combines the heavy drums and guitars of metal with different elements of orchestral classical music." },
       { name: "Doom Metal", description: "An extreme subgenre of heavy metal music that typically uses slower tempos, low-tuned guitars and a much 'thicker' or 'heavier' sound than other heavy metal genres." },
       { name: "Post-Metal", description: "A music genre that is a mixture of post-rock, heavy metal, and shoegaze." },
-      { name: "Progressive Metal", description: "A fusion music genre combining heavy metal and progressive rock that emerged in the United States and United Kingdom in the late 1980s." }
+      { name: "Progressive Metal", description: "A fusion music genre combining heavy metal and progressive rock that emerged in the United States and United Kingdom in the late 1980s." },
+      { name: "Hunnu Rock", description: "An intense, high-energy fusion of traditional Mongolian nomadic heritage and heavy rock or metal, popularized by bands like The HU, featuring throat singing, horsehead fiddles, and pounding war drums." },
+      { name: "Mongolian Folk Metal", description: "Fast-driving, metallic, rhythmic guitar riffs woven together with throat vocals and ancient horsehead fiddles (Morin Khuur)." }
     ]
   },
   {
@@ -169,3 +173,64 @@ export const STYLES = [
     ]
   }
 ];
+
+export interface IntentEnergySubgroup {
+  id: string;
+  name: string;
+  examples: string;
+  description: string;
+}
+
+export interface IntentEnergyGroup {
+  category: string;
+  umbrella: string;
+  subgroups: IntentEnergySubgroup[];
+}
+
+export const INTENT_ENERGY_GROUPS: IntentEnergyGroup[] = [
+  {
+    category: "High Energy & Movement",
+    umbrella: "The 'Dance' Umbrella",
+    subgroups: [
+      { id: "club_electronic", name: "Club & Electronic", examples: "House, Techno, Trance, Drum & Bass", description: "Upbeat, repetitive, synthesised tempos." },
+      { id: "urban_street", name: "Urban & Street", examples: "Hip-Hop, Trap, Reggaeton, Dancehall", description: "Heavy bass, rhythmic delivery, lyrical." },
+      { id: "retro_dance", name: "Retro Dance", examples: "Disco, Funk, Synthwave", description: "Groovy, nostalgic, organic basslines." },
+      { id: "rock_heavy_beats", name: "Rock & Heavy Beats", examples: "Hard Rock, Punk Rock, Synth Metal", description: "Aggressive tempo, high distortion, powerful drum beats." },
+      { id: "festive_carnival", name: "Festive & Carnival", examples: "Samba, Soca, Eurodance", description: "Polyrhythmic, highly celebratory, syncopated rhythms." }
+    ]
+  },
+  {
+    category: "Focus & Productivity",
+    umbrella: "The 'Brain' Umbrella",
+    subgroups: [
+      { id: "minimalist_ambient", name: "Minimalist Ambient", examples: "Lo-Fi Beats, Chillhop, Ambient Drone", description: "Predictable rhythms, cozy, comforting vibe." },
+      { id: "acoustic_focus", name: "Acoustic Focus", examples: "Classical Piano, Fingerstyle Guitar, Neo-Classical", description: "Organic, intellectual, stimulating without being distracting." },
+      { id: "neuro_music", name: "Neuro-Music", examples: "Binaural beats, Synth Drones, White/Brown Noise", description: "Scientific, deeply repetitive for deep-work states." },
+      { id: "nature_blend", name: "Nature Blend", examples: "Rain on Tents, Forest Birds with Soft Chords", description: "Natural field recordings mixed with harmonic backings." },
+      { id: "symphonic_focus", name: "Symphonic Focus", examples: "Baroque Harpsichord, Renaissance Lute", description: "Highly structured, mathematical, memory-enhancing patterns." }
+    ]
+  },
+  {
+    category: "Relaxation & Wind-Down",
+    umbrella: "The 'Chill' Umbrella",
+    subgroups: [
+      { id: "cinematic_atmospheric", name: "Cinematic & Atmospheric", examples: "Post-Rock, Ambient Textures, Dream Pop", description: "Spacious, slow-building, emotional soundscapes." },
+      { id: "organic_chill", name: "Organic Chill", examples: "Acoustic Folk, Bossa Nova, Smooth Jazz", description: "Warm, breezy, easy-listening melodies." },
+      { id: "meditation_wellness", name: "Meditation & Wellness", examples: "Tibetan bowls, Nature Soundscapes, New Age", description: "Purely sonic texture with no defined tempo." },
+      { id: "spiritual_chant", name: "Spiritual & Chant", examples: "Gregorian Chants, Sanskrit Mantras, Drone Chords", description: "Resonant, ancient, sacred, slowing respiratory rate." },
+      { id: "lullaby_slumber", name: "Lullaby & Slumber", examples: "Music Box, Celeste, Soft Harp Lullabies", description: "Extremely quiet, slow tempo, high-frequency gentle tones." }
+    ]
+  },
+  {
+    category: "Emotional & Narrative",
+    umbrella: "The 'Feelings' Umbrella",
+    subgroups: [
+      { id: "raw_angsty", name: "Raw & Angsty", examples: "Grunge, Indie Rock, Alternative, Punk", description: "Guitars, raw vocals, high emotional friction." },
+      { id: "soulful_roots", name: "Soulful & Roots", examples: "Blues, Soul, Gospel, Traditional Country", description: "Expressive vocals, organic instruments, heritage-driven melodies." },
+      { id: "epic_dramatic", name: "Epic & Dramatic", examples: "Orchestral Film Score, Dark Synth, Symphonic Metal", description: "Grand, cinematic, storytelling without words." },
+      { id: "nostalgic_bittersweet", name: "Nostalgic & Bitter-Sweet", examples: "French Chanson, Chamber Pop, Acoustic Ballad", description: "Reflective, melancholic, narrative-oriented." },
+      { id: "cinematic_scifi", name: "Cinematic Sci-Fi", examples: "Vangelis-style Synths, Slow Horn Swells", description: "Awe-inspiring, space-ambient cosmic journey." }
+    ]
+  }
+];
+

@@ -79,7 +79,8 @@ export const LANGUAGE_GROUPS: LanguageGroup[] = [
       { id: 'hi-IN', name: 'Hindi (Mānak Hindī)', description: 'Standardized register of the Hindustani language of India' },
       { id: 'bn-BD', name: 'Bengali / Bangla', description: 'Rich, historic Eastern Indo-Aryan language of Bangladesh and West Bengal' },
       { id: 'tl-PH', name: 'Tagalog (Filipino)', description: 'Austronesian language spoken as the standardized basis of Filipino' },
-      { id: 'id-ID', name: 'Indonesian (Bahasa Indonesia)', description: 'Austronesian standard of Malay, serving as the official lingua franca of Indonesia' }
+      { id: 'id-ID', name: 'Indonesian (Bahasa Indonesia)', description: 'Austronesian standard of Malay, serving as the official lingua franca of Indonesia' },
+      { id: 'mn-MN', name: 'Mongolian (Mongol Khele)', description: 'Rich Mongolian language featuring throat singing (Khoomei) expressions, soaring long-song (Urtiin Duu) melodic curves, and Nomadic horse-culture storytelling.' }
     ]
   },
   {

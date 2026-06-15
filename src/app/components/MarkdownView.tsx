@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Download, Copy, Check } from 'lucide-react';
 import { SINGERS } from '../../constants/singers';
 
@@ -30,6 +31,11 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({ content, children, f
       const placeholder = `{${singer.id}-age}`;
       result = result.replaceAll(placeholder, age.toString());
     });
+    
+    // Clean any AI-generated HTML p elements with align and image blocks
+    result = result.replace(/<p\s+align="center">[\s\S]*?<\/p>/gi, '');
+    result = result.replace(/<img[\s\S]*?\/>/gi, '');
+    result = result.replace(/<p\s+align='center'>[\s\S]*?<\/p>/gi, '');
     return result;
   }, [content]);
 
@@ -52,6 +58,21 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({ content, children, f
     }
   };
 
+  useEffect(() => {
+    const mj = (window as any).MathJax;
+    if (mj) {
+      // Small timeout to let React render the DOM node completely
+      const timer = setTimeout(() => {
+        try {
+          mj.typesetPromise?.();
+        } catch (err) {
+          console.error('MathJax typeset error:', err);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [processedContent]);
+
   return (
     <div className="relative w-full h-full flex flex-col">
       <div className="flex justify-end gap-2 p-2 border-b border-lavender-border">
@@ -63,7 +84,7 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({ content, children, f
       </div>
       <div className="flex-1 overflow-auto p-6 markdown-body">
         {children}
-        <ReactMarkdown>{processedContent}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{processedContent}</ReactMarkdown>
       </div>
     </div>
   );

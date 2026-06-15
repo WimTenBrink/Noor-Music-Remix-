@@ -21,6 +21,15 @@ export const LanguageSelectionDialog: React.FC<LanguageSelectionDialogProps> = (
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [warning, setWarning] = useState<string | null>(null);
 
+  const sortedLanguageGroups = React.useMemo(() => {
+    return [...LANGUAGE_GROUPS]
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(group => ({
+        ...group,
+        dialects: [...group.dialects].sort((a, b) => a.name.localeCompare(b.name))
+      }));
+  }, []);
+
   // Load from currentDialectId (comma-separated list of IDs)
   useEffect(() => {
     if (isOpen) {
@@ -35,16 +44,16 @@ export const LanguageSelectionDialog: React.FC<LanguageSelectionDialogProps> = (
       if (group) {
         setSelectedGroupId(group.id);
       } else {
-        setSelectedGroupId(LANGUAGE_GROUPS[0]?.id || 'english');
+        setSelectedGroupId(sortedLanguageGroups[0]?.id || 'english');
       }
     }
-  }, [isOpen, currentDialectId]);
+  }, [isOpen, currentDialectId, sortedLanguageGroups]);
 
-  const activeGroup = LANGUAGE_GROUPS.find(g => g.id === selectedGroupId) || LANGUAGE_GROUPS[0];
+  const activeGroup = sortedLanguageGroups.find(g => g.id === selectedGroupId) || sortedLanguageGroups[0];
 
   // If there's a search query, search globally
   const filteredDialects = searchQuery.trim() !== ''
-    ? LANGUAGE_GROUPS.flatMap(g => g.dialects).filter(d => 
+    ? sortedLanguageGroups.flatMap(g => g.dialects).filter(d => 
         d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         d.description.toLowerCase().includes(searchQuery.toLowerCase())
       )
@@ -112,7 +121,7 @@ export const LanguageSelectionDialog: React.FC<LanguageSelectionDialogProps> = (
               Language Groups
             </span>
             <div className="space-y-1">
-              {LANGUAGE_GROUPS.map((group) => {
+              {sortedLanguageGroups.map((group) => {
                 const isActive = group.id === selectedGroupId;
                 const totalDialects = group.dialects.length;
                 return (
